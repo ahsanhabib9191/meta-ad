@@ -30,8 +30,10 @@ local ttlMs = tonumber(ARGV[3])
 redis.call('ZADD', key, now, now)
 -- Remove expired entries outside the window
 redis.call('ZREMRANGEBYSCORE', key, 0, windowStart)
--- Set TTL on the key to auto-cleanup (convert ms to seconds, round up)
-redis.call('PEXPIRE', key, ttlMs)
+-- Set TTL on the key to auto-cleanup (ensure minimum of 1ms to prevent immediate expiration)
+if ttlMs > 0 then
+  redis.call('PEXPIRE', key, ttlMs)
+end
 -- Return count of entries in window
 return redis.call('ZCARD', key)
 `;

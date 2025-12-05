@@ -54,8 +54,8 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
     return;
   }
 
-  // Process all entries in parallel for better throughput
-  await Promise.all(
+  // Process all entries in parallel using Promise.allSettled to prevent one failure from canceling others
+  const entryResults = await Promise.allSettled(
     body.entry.map(async (entry) => {
       if (!entry.id || !entry.changes) {
         return;
@@ -67,26 +67,40 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
         return;
       }
 
-      // Process all changes for this entry in parallel
-      await Promise.all(
+      // Process all changes for this entry in parallel with individual error handling
+      const changeResults = await Promise.allSettled(
         entry.changes.map(async (change) => {
-          try {
-            if (change.field === 'campaign' && change.value?.id) {
-              await syncCampaignFromWebhook(connection, change.value.id);
-            } else if (change.field === 'adset' && change.value?.id) {
-              await syncAdSetFromWebhook(connection, change.value.id);
-            } else if (change.field === 'ad' && change.value?.id) {
-              await syncAdFromWebhook(connection, change.value.id);
-            }
-          } catch (error) {
-            logger.error('Failed to process Meta webhook change', {
-              adAccountId: entry.id,
-              change: change.field,
-              error,
-            });
+          if (change.field === 'campaign' && change.value?.id) {
+            await syncCampaignFromWebhook(connection, change.value.id);
+          } else if (change.field === 'adset' && change.value?.id) {
+            await syncAdSetFromWebhook(connection, change.value.id);
+          } else if (change.field === 'ad' && change.value?.id) {
+            await syncAdFromWebhook(connection, change.value.id);
           }
         })
       );
+
+      // Log any failed changes
+      changeResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const change = entry.changes![index];
+          logger.error('Failed to process Meta webhook change', {
+            adAccountId: entry.id,
+            change: change?.field,
+            error: result.reason,
+          });
+        }
+      });
     })
   );
+
+  // Log any failed entries
+  entryResults.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      logger.error('Failed to process Meta webhook entry', {
+        entryIndex: index,
+        error: result.reason,
+      });
+    }
+  });
 }
