@@ -26,7 +26,8 @@ async function verifyAuth(req) {
         const payload = jsonwebtoken_1.default.verify(token, secret);
         if (!payload?.userId || !payload?.tenantId || !payload?.email)
             return null;
-        const tenant = await Tenant_1.TenantModel.findOne({ tenantId: payload.tenantId }).lean();
+        // Only select the plan field for efficiency
+        const tenant = await Tenant_1.TenantModel.findOne({ tenantId: payload.tenantId }).select('plan').lean();
         if (!tenant)
             return null;
         return { userId: payload.userId, tenantId: payload.tenantId, email: payload.email, plan: tenant.plan };
@@ -53,7 +54,8 @@ async function verifyApiKey(req) {
     if (!apiKey)
         return null;
     const hash = (0, crypto_1.hashApiKey)(apiKey);
-    const tenant = await Tenant_1.TenantModel.findOne({ apiKeyHash: hash }).lean();
+    // Only select the required fields for efficiency
+    const tenant = await Tenant_1.TenantModel.findOne({ apiKeyHash: hash }).select('tenantId plan').lean();
     if (!tenant)
         return null;
     return { userId: tenant.tenantId, tenantId: tenant.tenantId, email: '', plan: tenant.plan };

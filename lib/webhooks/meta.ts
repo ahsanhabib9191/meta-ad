@@ -54,33 +54,39 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
     return;
   }
 
-  for (const entry of body.entry) {
-    if (!entry.id || !entry.changes) {
-      continue;
-    }
-
-    const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id }).exec();
-    if (!connection) {
-      logger.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });
-      continue;
-    }
-
-    for (const change of entry.changes) {
-      try {
-        if (change.field === 'campaign' && change.value?.id) {
-          await syncCampaignFromWebhook(connection, change.value.id);
-        } else if (change.field === 'adset' && change.value?.id) {
-          await syncAdSetFromWebhook(connection, change.value.id);
-        } else if (change.field === 'ad' && change.value?.id) {
-          await syncAdFromWebhook(connection, change.value.id);
-        }
-      } catch (error) {
-        logger.error('Failed to process Meta webhook change', {
-          adAccountId: entry.id,
-          change: change.field,
-          error,
-        });
+  // Process all entries in parallel for better throughput
+  await Promise.all(
+    body.entry.map(async (entry) => {
+      if (!entry.id || !entry.changes) {
+        return;
       }
-    }
-  }
+
+      const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id }).exec();
+      if (!connection) {
+        logger.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });
+        return;
+      }
+
+      // Process all changes for this entry in parallel
+      await Promise.all(
+        entry.changes.map(async (change) => {
+          try {
+            if (change.field === 'campaign' && change.value?.id) {
+              await syncCampaignFromWebhook(connection, change.value.id);
+            } else if (change.field === 'adset' && change.value?.id) {
+              await syncAdSetFromWebhook(connection, change.value.id);
+            } else if (change.field === 'ad' && change.value?.id) {
+              await syncAdFromWebhook(connection, change.value.id);
+            }
+          } catch (error) {
+            logger.error('Failed to process Meta webhook change', {
+              adAccountId: entry.id,
+              change: change.field,
+              error,
+            });
+          }
+        })
+      );
+    })
+  );
 }

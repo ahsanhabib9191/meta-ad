@@ -270,27 +270,31 @@ export async function syncMetaConnection(connection: IMetaConnection) {
   const { connection: safeConnection, accessToken } = await ensureConnectionAccessToken(connection);
   const accountId = safeConnection.adAccountId;
 
-  const campaigns = await fetchGraphEdges<GraphCampaign>(
-    accessToken,
-    `${accountId}/campaigns`,
-    buildGraphEdgeParams(campaignFields)
-  );
+  // Fetch campaigns, adsets, and ads in parallel for better performance
+  const [campaigns, adSets, ads] = await Promise.all([
+    fetchGraphEdges<GraphCampaign>(
+      accessToken,
+      `${accountId}/campaigns`,
+      buildGraphEdgeParams(campaignFields)
+    ),
+    fetchGraphEdges<GraphAdSet>(
+      accessToken,
+      `${accountId}/adsets`,
+      buildGraphEdgeParams(adSetFields)
+    ),
+    fetchGraphEdges<GraphAd>(
+      accessToken,
+      `${accountId}/ads`,
+      buildGraphEdgeParams(adFields)
+    ),
+  ]);
 
-  const adSets = await fetchGraphEdges<GraphAdSet>(
-    accessToken,
-    `${accountId}/adsets`,
-    buildGraphEdgeParams(adSetFields)
-  );
-
-  const ads = await fetchGraphEdges<GraphAd>(
-    accessToken,
-    `${accountId}/ads`,
-    buildGraphEdgeParams(adFields)
-  );
-
-  await Promise.all(campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)));
-  await Promise.all(adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)));
-  await Promise.all(ads.map((payload) => upsertAdFromGraph(payload, accountId)));
+  // Upsert all entities in parallel
+  await Promise.all([
+    ...campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)),
+    ...adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)),
+    ...ads.map((payload) => upsertAdFromGraph(payload, accountId)),
+  ]);
 
   await MetaConnectionModel.findByIdAndUpdate(safeConnection._id, { lastSyncedAt: new Date() }).exec();
 

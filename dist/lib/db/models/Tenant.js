@@ -51,6 +51,7 @@ const TenantSchema = new mongoose_1.Schema({
 // Indexes
 TenantSchema.index({ tenantId: 1 }, { unique: true });
 TenantSchema.index({ primaryDomain: 1 }, { sparse: true });
+TenantSchema.index({ apiKeyHash: 1 }, { sparse: true }); // Used in API key authentication
 exports.TenantModel = mongoose_1.default.models.Tenant || mongoose_1.default.model('Tenant', TenantSchema);
 class Tenant {
     static async create(data) {

@@ -13,12 +13,18 @@ const crypto_1 = __importDefault(require("crypto"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const IV_LENGTH = 16; // 16 bytes for AES-GCM
 const ALGO = 'aes-256-gcm';
+// Cache the encryption key to avoid parsing on every encrypt/decrypt call
+let cachedKey = null;
 function getKey() {
+    if (cachedKey) {
+        return cachedKey;
+    }
     const keyHex = process.env.ENCRYPTION_KEY || '';
     if (!keyHex || keyHex.length !== 64) {
         throw new Error('ENCRYPTION_KEY must be a 32-byte hex string (64 hex chars).');
     }
-    return Buffer.from(keyHex, 'hex');
+    cachedKey = Buffer.from(keyHex, 'hex');
+    return cachedKey;
 }
 function encrypt(text) {
     const iv = crypto_1.default.randomBytes(IV_LENGTH);

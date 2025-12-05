@@ -36,17 +36,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdAccountModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const AdAccountSchema = new mongoose_1.Schema({
-    accountId: { type: String, required: true, index: true },
+    accountId: { type: String, required: true },
     name: { type: String, required: true },
     currency: { type: String, required: true },
     timezone: { type: String, required: true },
-    status: { type: Number, required: true, index: true },
+    status: { type: Number, required: true },
     spendingLimit: { type: Number },
-    businessId: { type: String, index: true },
+    businessId: { type: String },
 }, { timestamps: true });
-// Explicit indexes
+// Explicit indexes (removed redundant inline index: true definitions)
 AdAccountSchema.index({ accountId: 1 }, { unique: true });
 AdAccountSchema.index({ status: 1 });
-AdAccountSchema.index({ businessId: 1 });
+AdAccountSchema.index({ businessId: 1 }, { sparse: true });
 exports.AdAccountModel = mongoose_1.default.models.AdAccount || mongoose_1.default.model('AdAccount', AdAccountSchema);
 exports.default = exports.AdAccountModel;

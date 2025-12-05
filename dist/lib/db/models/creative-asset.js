@@ -40,15 +40,16 @@ const CreativeUsageRefSchema = new mongoose_1.Schema({
     entityId: { type: String, required: true },
 }, { _id: false });
 const CreativeAssetSchema = new mongoose_1.Schema({
-    assetId: { type: String, required: true, index: true },
-    type: { type: String, required: true, index: true },
+    assetId: { type: String, required: true },
+    type: { type: String, required: true },
     url: { type: String, required: true },
     hash: { type: String },
     metadata: { type: mongoose_1.Schema.Types.Mixed },
     usedBy: { type: [CreativeUsageRefSchema], default: [] },
 }, { timestamps: true });
-// Explicit indexes
+// Explicit indexes (removed redundant inline index: true definitions)
 CreativeAssetSchema.index({ assetId: 1 }, { unique: true });
+CreativeAssetSchema.index({ type: 1 });
 CreativeAssetSchema.index({ hash: 1 }, { unique: true, sparse: true });
 CreativeAssetSchema.index({ 'usedBy.entityType': 1, 'usedBy.entityId': 1 });
 exports.CreativeAssetModel = mongoose_1.default.models.CreativeAsset ||
