@@ -14,6 +14,8 @@ export interface IMetaConnection extends Document {
   lastSyncedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  getAccessToken(): string;
+  getRefreshToken(): string | undefined;
 }
 
 const MetaConnectionSchema = new Schema<IMetaConnection>({
