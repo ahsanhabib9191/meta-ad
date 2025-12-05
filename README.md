@@ -66,12 +66,25 @@ npm run docker:down
 - TypeScript/ts-node errors:
   - Ensure Node 20+ and clean install: `rm -rf node_modules package-lock.json && npm install`
 
+## API Examples
+
+See **`examples/api/`** for complete Next.js API route examples demonstrating:
+
+- **Campaign Ad Sets**: Create and list ad sets under campaigns
+- **Ad Set Ads**: Create and list ads under ad sets  
+- **Ad Management**: Get, update (PATCH), and soft delete individual ads
+- **Bulk Operations**: Update status for multiple ads at once
+
+These are **reference implementations** showing how to use the database models in a real Next.js application with proper authentication, rate limiting, validation, and error handling.
+
+📖 **[Read the API Examples README →](examples/api/README.md)**
+
 ## Notes
 
 - Indexes are synchronized during `initializeDatabase()` in `lib/db/index.ts`.
 - DB connection caching lives in `lib/db/client.ts`.
 - Redis client is implemented in `lib/db/redis.ts`.
-- Required models are in `lib/db/models`: `Tenant`, `MetaConnection`, `WebsiteAudit`, `GeneratedCopy` plus `Campaign`, `OptimizationLog`.
+- Required models are in `lib/db/models`: `Tenant`, `MetaConnection`, `WebsiteAudit`, `GeneratedCopy`, `Campaign`, `AdSet`, `Ad`, `OptimizationLog`.
 
 ## Migration: encrypt existing Meta tokens
 
