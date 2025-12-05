@@ -1,0 +1,19 @@
+{
+  "name": "meta-ads-optimization-db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test:db": "ts-node scripts/test-db.ts"
+  },
+  "dependencies": {
+    "mongoose": "^8.7.0",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^20.11.30",
+    "ts-node": "^10.9.2"
+  }
+}

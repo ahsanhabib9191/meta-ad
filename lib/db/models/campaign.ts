@@ -1,88 +1,41 @@
-import { prisma } from '../client';
-import type { Campaign, Prisma } from '@prisma/client';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-/**
- * Campaign model operations
- */
-export class CampaignModel {
-  /**
-   * Find a campaign by ID
-   */
-  static async findById(id: string): Promise<Campaign | null> {
-    return prisma.campaign.findUnique({
-      where: { id },
-    });
-  }
+export type CampaignStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DRAFT' | 'LEARNING' | 'LEARNING_LIMITED';
+export type CampaignObjective = 'OUTCOME_AWARENESS' | 'OUTCOME_TRAFFIC' | 'OUTCOME_SALES' | 'OUTCOME_ENGAGEMENT' | 'OUTCOME_LEADS';
 
-  /**
-   * Find all campaigns for a specific account
-   */
-  static async findByAccountId(accountId: string): Promise<Campaign[]> {
-    return prisma.campaign.findMany({
-      where: { accountId },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  /**
-   * Find active campaigns
-   */
-  static async findActive(): Promise<Campaign[]> {
-    return prisma.campaign.findMany({
-      where: {
-        status: 'ACTIVE',
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  /**
-   * Create a new campaign
-   */
-  static async create(data: Prisma.CampaignCreateInput): Promise<Campaign> {
-    return prisma.campaign.create({
-      data,
-    });
-  }
-
-  /**
-   * Update a campaign
-   */
-  static async update(id: string, data: Prisma.CampaignUpdateInput): Promise<Campaign> {
-    return prisma.campaign.update({
-      where: { id },
-      data,
-    });
-  }
-
-  /**
-   * Delete a campaign
-   */
-  static async delete(id: string): Promise<Campaign> {
-    return prisma.campaign.delete({
-      where: { id },
-    });
-  }
-
-  /**
-   * Update campaign budget
-   */
-  static async updateBudget(id: string, budget: number): Promise<Campaign> {
-    return prisma.campaign.update({
-      where: { id },
-      data: { budget },
-    });
-  }
-
-  /**
-   * Update campaign status
-   */
-  static async updateStatus(id: string, status: string): Promise<Campaign> {
-    return prisma.campaign.update({
-      where: { id },
-      data: { status },
-    });
-  }
+export interface ICampaign extends Document {
+  campaignId: string;
+  accountId: string;
+  name: string;
+  objective: CampaignObjective;
+  status: CampaignStatus;
+  budget: number; // Daily budget
+  startDate?: Date;
+  endDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+const CampaignSchema = new Schema<ICampaign>(
+  {
+    campaignId: { type: String, required: true, index: true },
+    accountId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    objective: { type: String, required: true, index: true },
+    status: { type: String, required: true, index: true },
+    budget: { type: Number, required: true, min: 0 },
+    startDate: { type: Date },
+    endDate: { type: Date },
+  },
+  { timestamps: true }
+);
+
+// Explicit indexes
+CampaignSchema.index({ campaignId: 1 }, { unique: true });
+CampaignSchema.index({ accountId: 1, status: 1 });
+CampaignSchema.index({ objective: 1 });
+
+export const CampaignModel: Model<ICampaign> =
+  mongoose.models.Campaign || mongoose.model<ICampaign>('Campaign', CampaignSchema);
 
 export default CampaignModel;

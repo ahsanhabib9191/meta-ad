@@ -1,22 +1,50 @@
-import { Redis } from 'ioredis';
+import Redis from 'ioredis';
 
-const globalForRedis = global as unknown as { redis: Redis };
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
-export const redis =
-  globalForRedis.redis ||
-  new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
+/**
+ * Global redis connection cache
+ */
+declare global {
+  var redis: Redis | undefined;
+}
+
+let cached = global.redis;
+
+if (!cached) {
+  cached = global.redis = new Redis({
+    host: REDIS_HOST,
+    port: REDIS_PORT,
+    password: REDIS_PASSWORD,
     retryStrategy: (times: number) => {
       const delay = Math.min(times * 50, 2000);
       return delay;
     },
     maxRetriesPerRequest: 3,
+    lazyConnect: true,
   });
+}
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForRedis.redis = redis;
+export const redis = cached;
+
+/**
+ * Connect to Redis
+ */
+export async function connectRedis(): Promise<void> {
+  if (redis.status !== 'ready') {
+    await redis.connect();
+    console.log('✅ Redis connected successfully');
+  }
+}
+
+/**
+ * Disconnect from Redis
+ */
+export async function disconnectRedis(): Promise<void> {
+  await redis.quit();
+  console.log('✅ Redis disconnected');
 }
 
 export default redis;

@@ -1,20 +1,17 @@
-/**
- * Database Models Index
- * Exports all model classes for easy importing
- */
+export { AdAccountModel } from './ad-account';
+export type { IAdAccount, AdAccountStatus } from './ad-account';
 
 export { CampaignModel } from './campaign';
-export { AdSetModel } from './adset';
-export { AdModel } from './ad';
-export { PerformanceMetricModel } from './performance-metric';
-export { OptimizationRuleModel } from './optimization-rule';
-export { OptimizationLogModel } from './optimization-log';
+export type { ICampaign, CampaignStatus, CampaignObjective } from './campaign';
 
-export default {
-  Campaign: require('./campaign').CampaignModel,
-  AdSet: require('./adset').AdSetModel,
-  Ad: require('./ad').AdModel,
-  PerformanceMetric: require('./performance-metric').PerformanceMetricModel,
-  OptimizationRule: require('./optimization-rule').OptimizationRuleModel,
-  OptimizationLog: require('./optimization-log').OptimizationLogModel,
-};
+export { PerformanceSnapshotModel } from './performance-snapshot';
+export type { IPerformanceSnapshot, EntityType } from './performance-snapshot';
+
+export { OptimizationLogModel } from './optimization-log';
+export type { IOptimizationLog, OptimizationEntity } from './optimization-log';
+
+export { AudienceInsightModel } from './audience-insight';
+export type { IAudienceInsight, InsightEntity, InsightDimension } from './audience-insight';
+
+export { CreativeAssetModel } from './creative-asset';
+export type { ICreativeAsset, ICreativeUsageRef, CreativeType } from './creative-asset';
