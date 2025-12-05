@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test:db": "ts-node scripts/test-db.ts"
+    "test:db": "ts-node scripts/test-db.ts",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs --tail=100"
   },
   "dependencies": {
     "mongoose": "^8.7.0",
