@@ -8,6 +8,7 @@
     "test:security": "ts-node scripts/test-encryption.ts",
     "test:auth": "ts-node scripts/test-auth.ts",
     "test:rate": "ts-node scripts/test-rate-limit.ts",
+    "test:models": "ts-node scripts/test-adset-ad-models.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs"

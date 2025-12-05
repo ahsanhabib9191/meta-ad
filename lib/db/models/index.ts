@@ -1,6 +1,12 @@
 export { CampaignModel } from './campaign';
 export type { ICampaign, CampaignStatus, CampaignObjective } from './campaign';
 
+export { AdSetModel } from './ad-set';
+export type { IAdSet, AdSetStatus, LearningPhaseStatus, ITargeting } from './ad-set';
+
+export { AdModel } from './ad';
+export type { IAd, AdStatus, AdEffectiveStatus, IAdCreative, IAdIssue } from './ad';
+
 export { OptimizationLogModel } from './optimization-log';
 export type { IOptimizationLog, OptimizationEntity } from './optimization-log';
 

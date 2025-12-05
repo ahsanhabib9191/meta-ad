@@ -10,6 +10,8 @@ export async function initializeDatabase(): Promise<void> {
     (await import('./models/MetaConnection')).MetaConnectionModel,
     (await import('./models/WebsiteAudit')).WebsiteAuditModel,
     (await import('./models/GeneratedCopy')).GeneratedCopyModel,
+    (await import('./models/ad-set')).AdSetModel,
+    (await import('./models/ad')).AdModel,
   ];
 
   // Drop existing indexes to avoid duplicate/auto-named conflicts, then sync declared indexes.

@@ -44,6 +44,8 @@ async function initializeDatabase() {
         (await Promise.resolve().then(() => __importStar(require('./models/MetaConnection')))).MetaConnectionModel,
         (await Promise.resolve().then(() => __importStar(require('./models/WebsiteAudit')))).WebsiteAuditModel,
         (await Promise.resolve().then(() => __importStar(require('./models/GeneratedCopy')))).GeneratedCopyModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/ad-set')))).AdSetModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/ad')))).AdModel,
     ];
     // Drop existing indexes to avoid duplicate/auto-named conflicts, then sync declared indexes.
     for (const m of models) {
