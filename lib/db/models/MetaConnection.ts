@@ -16,13 +16,13 @@ export interface IMetaConnection extends Document {
 }
 
 const MetaConnectionSchema = new Schema<IMetaConnection>({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
   adAccountId: { type: String, required: true },
   accessToken: { type: String, required: true },
   refreshToken: { type: String },
   tokenExpiresAt: { type: Date },
   permissions: { type: [String], default: [] },
-  status: { type: String, required: true, index: true },
+  status: { type: String, required: true },
   lastSyncedAt: { type: Date },
 }, { timestamps: true });
 

@@ -27,8 +27,8 @@ const UsedByRefSchema = new Schema<IUsedByRef>({
 }, { _id: false });
 
 const GeneratedCopySchema = new Schema<IGeneratedCopy>({
-  tenantId: { type: String, required: true, index: true },
-  context: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
+  context: { type: String, required: true },
   inputBrief: { type: String, required: true },
   outputText: { type: String, required: true },
   model: { type: String },

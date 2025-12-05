@@ -28,9 +28,9 @@ const AuditIssueSchema = new Schema<IAuditIssue>({
 }, { _id: false });
 
 const WebsiteAuditSchema = new Schema<IWebsiteAudit>({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
   url: { type: String, required: true },
-  status: { type: String, required: true, index: true },
+  status: { type: String, required: true },
   issues: { type: [AuditIssueSchema], default: [] },
   metrics: { type: Schema.Types.Mixed },
   lastRunAt: { type: Date },

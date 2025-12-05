@@ -13,7 +13,7 @@ export interface ITenant extends Document {
 }
 
 const TenantSchema = new Schema<ITenant>({
-  tenantId: { type: String, required: true, index: true },
+  tenantId: { type: String, required: true },
   name: { type: String, required: true },
   primaryDomain: { type: String },
   plan: { type: String, required: true },
