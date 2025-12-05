@@ -113,3 +113,9 @@ Add these to `.env` (see `.env.example`):
 - Rate limiting:
   - `RATE_LIMIT_MAX` – requests allowed per window (default 60)
   - `RATE_LIMIT_WINDOW_MS` – window duration in ms (default 60000)
+
+## Contributing
+
+Before opening a PR, please read `CONTRIBUTING.md` for branch strategy, commit/PR hygiene, CI requirements, and local setup. PRs use the template in `.github/pull_request_template.md`.
+
+CI runs on PRs to `main` and pushes to feature branches. After your first CI run, branch protections can mark these checks as required: lint, typecheck, build, test. See `docs/branch-protection.md` for the exact GitHub settings.
