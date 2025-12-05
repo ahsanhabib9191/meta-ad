@@ -35,6 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+const AD_STATUS_VALUES = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DRAFT'];
+const AD_EFFECTIVE_STATUS_VALUES = ['ACTIVE', 'PAUSED', 'DISAPPROVED', 'PENDING_REVIEW', 'ARCHIVED', 'DELETED', 'ADSET_PAUSED', 'CAMPAIGN_PAUSED'];
 const AdIssueSchema = new mongoose_1.Schema({
     errorCode: { type: String },
     errorMessage: { type: String, required: true },
@@ -56,9 +58,9 @@ const AdSchema = new mongoose_1.Schema({
     campaignId: { type: String, required: true },
     accountId: { type: String, required: true },
     name: { type: String, required: true },
-    status: { type: String, required: true },
+    status: { type: String, required: true, enum: AD_STATUS_VALUES },
     creative: { type: AdCreativeSchema, required: true },
-    effectiveStatus: { type: String, required: true },
+    effectiveStatus: { type: String, required: true, enum: AD_EFFECTIVE_STATUS_VALUES },
     issues: { type: [AdIssueSchema], default: [] },
 }, { timestamps: true });
 // Indexes

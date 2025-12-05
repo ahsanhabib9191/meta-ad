@@ -35,6 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdSetModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+const AD_SET_STATUS_VALUES = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DRAFT'];
+const LEARNING_PHASE_STATUS_VALUES = ['LEARNING', 'ACTIVE', 'LEARNING_LIMITED', 'NOT_STARTED'];
 const TargetingSchema = new mongoose_1.Schema({
     audienceSize: { type: Number, min: 0 },
     ageMin: { type: Number },
@@ -51,10 +53,10 @@ const AdSetSchema = new mongoose_1.Schema({
     campaignId: { type: String, required: true },
     accountId: { type: String, required: true },
     name: { type: String, required: true },
-    status: { type: String, required: true },
+    status: { type: String, required: true, enum: AD_SET_STATUS_VALUES },
     budget: { type: Number, required: true, min: 0 },
-    targeting: { type: TargetingSchema, required: true },
-    learningPhaseStatus: { type: String, required: true },
+    targeting: { type: TargetingSchema, default: {} },
+    learningPhaseStatus: { type: String, required: true, enum: LEARNING_PHASE_STATUS_VALUES },
     optimizationGoal: { type: String, required: true },
     deliveryStatus: { type: String },
     optimizationEventsCount: { type: Number, min: 0 },
@@ -66,6 +68,7 @@ const AdSetSchema = new mongoose_1.Schema({
 AdSetSchema.index({ adSetId: 1 }, { unique: true });
 AdSetSchema.index({ campaignId: 1, status: 1 });
 AdSetSchema.index({ accountId: 1, status: 1 });
+AdSetSchema.index({ status: 1 });
 AdSetSchema.index({ learningPhaseStatus: 1 });
 AdSetSchema.index({ status: 1, learningPhaseStatus: 1 });
 exports.AdSetModel = mongoose_1.default.models.AdSet || mongoose_1.default.model('AdSet', AdSetSchema);

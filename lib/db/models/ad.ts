@@ -3,6 +3,9 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export type AdStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DRAFT';
 export type AdEffectiveStatus = 'ACTIVE' | 'PAUSED' | 'DISAPPROVED' | 'PENDING_REVIEW' | 'ARCHIVED' | 'DELETED' | 'ADSET_PAUSED' | 'CAMPAIGN_PAUSED';
 
+const AD_STATUS_VALUES: AdStatus[] = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DRAFT'];
+const AD_EFFECTIVE_STATUS_VALUES: AdEffectiveStatus[] = ['ACTIVE', 'PAUSED', 'DISAPPROVED', 'PENDING_REVIEW', 'ARCHIVED', 'DELETED', 'ADSET_PAUSED', 'CAMPAIGN_PAUSED'];
+
 export interface IAdIssue {
   errorCode?: string;
   errorMessage: string;
@@ -57,9 +60,9 @@ const AdSchema = new Schema<IAd>({
   campaignId: { type: String, required: true },
   accountId: { type: String, required: true },
   name: { type: String, required: true },
-  status: { type: String, required: true },
+  status: { type: String, required: true, enum: AD_STATUS_VALUES },
   creative: { type: AdCreativeSchema, required: true },
-  effectiveStatus: { type: String, required: true },
+  effectiveStatus: { type: String, required: true, enum: AD_EFFECTIVE_STATUS_VALUES },
   issues: { type: [AdIssueSchema], default: [] },
 }, { timestamps: true });
 

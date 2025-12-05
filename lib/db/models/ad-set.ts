@@ -3,6 +3,9 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export type AdSetStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DRAFT';
 export type LearningPhaseStatus = 'LEARNING' | 'ACTIVE' | 'LEARNING_LIMITED' | 'NOT_STARTED';
 
+const AD_SET_STATUS_VALUES: AdSetStatus[] = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DRAFT'];
+const LEARNING_PHASE_STATUS_VALUES: LearningPhaseStatus[] = ['LEARNING', 'ACTIVE', 'LEARNING_LIMITED', 'NOT_STARTED'];
+
 export interface ITargeting {
   audienceSize?: number;
   ageMin?: number;
@@ -22,7 +25,7 @@ export interface IAdSet extends Document {
   name: string;
   status: AdSetStatus;
   budget: number;
-  targeting: ITargeting;
+  targeting?: ITargeting;
   learningPhaseStatus: LearningPhaseStatus;
   optimizationGoal: string;
   deliveryStatus?: string;
@@ -51,10 +54,10 @@ const AdSetSchema = new Schema<IAdSet>({
   campaignId: { type: String, required: true },
   accountId: { type: String, required: true },
   name: { type: String, required: true },
-  status: { type: String, required: true },
+  status: { type: String, required: true, enum: AD_SET_STATUS_VALUES },
   budget: { type: Number, required: true, min: 0 },
-  targeting: { type: TargetingSchema, required: true },
-  learningPhaseStatus: { type: String, required: true },
+  targeting: { type: TargetingSchema, default: {} },
+  learningPhaseStatus: { type: String, required: true, enum: LEARNING_PHASE_STATUS_VALUES },
   optimizationGoal: { type: String, required: true },
   deliveryStatus: { type: String },
   optimizationEventsCount: { type: Number, min: 0 },
@@ -67,6 +70,7 @@ const AdSetSchema = new Schema<IAdSet>({
 AdSetSchema.index({ adSetId: 1 }, { unique: true });
 AdSetSchema.index({ campaignId: 1, status: 1 });
 AdSetSchema.index({ accountId: 1, status: 1 });
+AdSetSchema.index({ status: 1 });
 AdSetSchema.index({ learningPhaseStatus: 1 });
 AdSetSchema.index({ status: 1, learningPhaseStatus: 1 });
 

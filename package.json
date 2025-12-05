@@ -9,6 +9,7 @@
     "test:auth": "ts-node scripts/test-auth.ts",
     "test:rate": "ts-node scripts/test-rate-limit.ts",
     "test:models": "ts-node scripts/test-adset-ad-models.ts",
+    "test:enums": "ts-node scripts/test-enum-validation.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs"
