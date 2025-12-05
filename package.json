@@ -10,12 +10,19 @@
     "docker:logs": "docker compose logs"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.7.0",
-    "ioredis": "^5.4.1"
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^4.7.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.30",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
   }
 }

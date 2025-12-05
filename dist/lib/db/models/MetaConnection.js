@@ -35,16 +35,35 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetaConnection = exports.MetaConnectionModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+const crypto_1 = require("../../utils/crypto");
 const MetaConnectionSchema = new mongoose_1.Schema({
-    tenantId: { type: String, required: true, index: true },
+    tenantId: { type: String, required: true },
     adAccountId: { type: String, required: true },
     accessToken: { type: String, required: true },
     refreshToken: { type: String },
     tokenExpiresAt: { type: Date },
     permissions: { type: [String], default: [] },
-    status: { type: String, required: true, index: true },
+    status: { type: String, required: true },
     lastSyncedAt: { type: Date },
 }, { timestamps: true });
+// Encrypt tokens before save
+MetaConnectionSchema.pre('save', function (next) {
+    const doc = this;
+    if (doc.isModified('accessToken')) {
+        doc.accessToken = (0, crypto_1.encrypt)(doc.accessToken);
+    }
+    if (doc.isModified('refreshToken') && doc.refreshToken) {
+        doc.refreshToken = (0, crypto_1.encrypt)(doc.refreshToken);
+    }
+    next();
+});
+// Helper methods to get decrypted tokens
+MetaConnectionSchema.methods.getAccessToken = function () {
+    return (0, crypto_1.decrypt)(this.accessToken);
+};
+MetaConnectionSchema.methods.getRefreshToken = function () {
+    return this.refreshToken ? (0, crypto_1.decrypt)(this.refreshToken) : undefined;
+};
 // Indexes
 MetaConnectionSchema.index({ tenantId: 1, adAccountId: 1 }, { unique: true });
 MetaConnectionSchema.index({ status: 1 });
@@ -58,7 +77,12 @@ class MetaConnection {
         return exports.MetaConnectionModel.findOne({ tenantId, adAccountId }).exec();
     }
     static async updateTokens(tenantId, adAccountId, update) {
-        return exports.MetaConnectionModel.findOneAndUpdate({ tenantId, adAccountId }, update, { new: true }).exec();
+        const toUpdate = { ...update };
+        if (toUpdate.accessToken)
+            toUpdate.accessToken = (0, crypto_1.encrypt)(toUpdate.accessToken);
+        if (toUpdate.refreshToken)
+            toUpdate.refreshToken = (0, crypto_1.encrypt)(toUpdate.refreshToken);
+        return exports.MetaConnectionModel.findOneAndUpdate({ tenantId, adAccountId }, toUpdate, { new: true }).exec();
     }
     static async revoke(tenantId, adAccountId) {
         return exports.MetaConnectionModel.findOneAndUpdate({ tenantId, adAccountId }, { status: 'REVOKED' }, { new: true }).exec();

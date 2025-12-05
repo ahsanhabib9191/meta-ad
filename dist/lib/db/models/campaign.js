@@ -36,11 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CampaignModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const CampaignSchema = new mongoose_1.Schema({
-    campaignId: { type: String, required: true, index: true },
-    accountId: { type: String, required: true, index: true },
+    campaignId: { type: String, required: true },
+    accountId: { type: String, required: true },
     name: { type: String, required: true },
-    objective: { type: String, required: true, index: true },
-    status: { type: String, required: true, index: true },
+    objective: { type: String, required: true },
+    status: { type: String, required: true },
     budget: { type: Number, required: true, min: 0 },
     startDate: { type: Date },
     endDate: { type: Date },

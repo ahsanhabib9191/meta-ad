@@ -42,9 +42,9 @@ const AuditIssueSchema = new mongoose_1.Schema({
     path: { type: String },
 }, { _id: false });
 const WebsiteAuditSchema = new mongoose_1.Schema({
-    tenantId: { type: String, required: true, index: true },
+    tenantId: { type: String, required: true },
     url: { type: String, required: true },
-    status: { type: String, required: true, index: true },
+    status: { type: String, required: true },
     issues: { type: [AuditIssueSchema], default: [] },
     metrics: { type: mongoose_1.Schema.Types.Mixed },
     lastRunAt: { type: Date },

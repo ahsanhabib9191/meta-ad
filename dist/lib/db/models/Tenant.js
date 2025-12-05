@@ -35,12 +35,18 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tenant = exports.TenantModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
+const crypto_1 = require("../../utils/crypto");
 const TenantSchema = new mongoose_1.Schema({
-    tenantId: { type: String, required: true, index: true },
+    tenantId: { type: String, required: true },
     name: { type: String, required: true },
     primaryDomain: { type: String },
     plan: { type: String, required: true },
     settings: { type: mongoose_1.Schema.Types.Mixed },
+    apiKeyHash: { type: String },
+    requestCounts: {
+        daily: { type: Number, default: 0 },
+        monthly: { type: Number, default: 0 },
+    },
 }, { timestamps: true });
 // Indexes
 TenantSchema.index({ tenantId: 1 }, { unique: true });
@@ -58,6 +64,21 @@ class Tenant {
     }
     static async updateByTenantId(tenantId, data) {
         return exports.TenantModel.findOneAndUpdate({ tenantId }, data, { new: true }).exec();
+    }
+    static async incrementRequestCounts(tenantId, dailyInc = 1, monthlyInc = 1) {
+        await exports.TenantModel.updateOne({ tenantId }, { $inc: { 'requestCounts.daily': dailyInc, 'requestCounts.monthly': monthlyInc } }).exec();
+    }
+    static async issueApiKey(tenantId) {
+        const apiKey = (0, crypto_1.generateApiKey)();
+        const apiKeyHash = (0, crypto_1.hashApiKey)(apiKey);
+        await exports.TenantModel.updateOne({ tenantId }, { apiKeyHash }).exec();
+        return apiKey;
+    }
+    static async verifyApiKey(tenantId, apiKey) {
+        const t = await exports.TenantModel.findOne({ tenantId }).select('apiKeyHash').lean();
+        if (!t || !t.apiKeyHash)
+            return false;
+        return t.apiKeyHash === (0, crypto_1.hashApiKey)(apiKey);
     }
 }
 exports.Tenant = Tenant;

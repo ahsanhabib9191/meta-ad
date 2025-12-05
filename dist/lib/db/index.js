@@ -37,19 +37,26 @@ exports.initializeDatabase = initializeDatabase;
 const client_1 = require("./client");
 async function initializeDatabase() {
     await (0, client_1.connectDB)();
-    const { CampaignModel } = await Promise.resolve().then(() => __importStar(require('./models/campaign')));
-    const { OptimizationLogModel } = await Promise.resolve().then(() => __importStar(require('./models/optimization-log')));
-    const { TenantModel } = await Promise.resolve().then(() => __importStar(require('./models/Tenant')));
-    const { MetaConnectionModel } = await Promise.resolve().then(() => __importStar(require('./models/MetaConnection')));
-    const { WebsiteAuditModel } = await Promise.resolve().then(() => __importStar(require('./models/WebsiteAudit')));
-    const { GeneratedCopyModel } = await Promise.resolve().then(() => __importStar(require('./models/GeneratedCopy')));
-    await Promise.all([
-        CampaignModel.syncIndexes(),
-        OptimizationLogModel.syncIndexes(),
-        TenantModel.syncIndexes(),
-        MetaConnectionModel.syncIndexes(),
-        WebsiteAuditModel.syncIndexes(),
-        GeneratedCopyModel.syncIndexes(),
-    ]);
+    const models = [
+        (await Promise.resolve().then(() => __importStar(require('./models/campaign')))).CampaignModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/optimization-log')))).OptimizationLogModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/Tenant')))).TenantModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/MetaConnection')))).MetaConnectionModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/WebsiteAudit')))).WebsiteAuditModel,
+        (await Promise.resolve().then(() => __importStar(require('./models/GeneratedCopy')))).GeneratedCopyModel,
+    ];
+    // Drop existing indexes to avoid duplicate/auto-named conflicts, then sync declared indexes.
+    for (const m of models) {
+        try {
+            await m.collection.dropIndexes();
+        }
+        catch (err) {
+            // Ignore if no indexes exist yet
+            if (err?.codeName !== 'NamespaceNotFound' && err?.code !== 26) {
+                console.warn(`Index drop warning for ${m.modelName}:`, err?.message || err);
+            }
+        }
+        await m.syncIndexes();
+    }
     console.log('✅ Database initialized with all required models and indexes');
 }

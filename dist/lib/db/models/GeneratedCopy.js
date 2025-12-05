@@ -40,8 +40,8 @@ const UsedByRefSchema = new mongoose_1.Schema({
     entityId: { type: String, required: true },
 }, { _id: false });
 const GeneratedCopySchema = new mongoose_1.Schema({
-    tenantId: { type: String, required: true, index: true },
-    context: { type: String, required: true, index: true },
+    tenantId: { type: String, required: true },
+    context: { type: String, required: true },
     inputBrief: { type: String, required: true },
     outputText: { type: String, required: true },
     model: { type: String },
