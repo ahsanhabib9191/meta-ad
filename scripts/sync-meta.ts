@@ -9,10 +9,7 @@ const INTERVAL_MINUTES = parseInt(process.env.META_SYNC_INTERVAL_MINUTES || '15'
 const INTERVAL_MS = Math.max(INTERVAL_MINUTES, 1) * 60 * 1000;
 
 async function acquireLock(value: string, ttlSeconds: number) {
-  const result = await redis.set(LOCK_KEY, value, {
-    NX: true,
-    EX: ttlSeconds,
-  });
+  const result = await redis.set(LOCK_KEY, value, 'EX', ttlSeconds, 'NX');
   return result === 'OK';
 }
 
