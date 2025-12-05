@@ -16,7 +16,7 @@ async function run() {
   // Test MetaConnection encryption
   const plainAccess = 'access-token-plain-' + Math.random().toString(36).slice(2);
   const plainRefresh = 'refresh-token-plain-' + Math.random().toString(36).slice(2);
-  const mc = await MetaConnectionModel.create({ tenantId, adAccountId: 'act_123', accessToken: plainAccess, refreshToken: plainRefresh });
+  const mc = await MetaConnectionModel.create({ tenantId, adAccountId: 'act_123', accessToken: plainAccess, refreshToken: plainRefresh, status: 'ACTIVE' });
 
   // Reload raw to inspect storage
   const stored = await MetaConnectionModel.findById(mc._id).lean();
@@ -36,7 +36,8 @@ async function run() {
 
   // Test updating tokens also encrypts
   const newAccess = 'new-access-token-' + Math.random().toString(36).slice(2);
-  await MetaConnectionModel.updateOne({ _id: mc._id }, { accessToken: newAccess });
+  // Use class helper to ensure encryption on update
+  const updated = await (await import('../lib/db/models/MetaConnection')).MetaConnection.updateTokens(tenantId, 'act_123', { accessToken: newAccess });
   const afterUpdate = await MetaConnectionModel.findById(mc._id).lean();
   if (!afterUpdate) throw new Error('After-update doc missing');
   if (afterUpdate.accessToken === newAccess) throw new Error('Updated accessToken was not encrypted');
