@@ -127,6 +127,10 @@ Add these to `.env` (see `.env.example`):
   - `RATE_LIMIT_MAX` – requests allowed per window (default 60)
   - `RATE_LIMIT_WINDOW_MS` – window duration in ms (default 60000)
 
+  ## Optimization Engine
+
+  This package now exposes helper modules under `lib/optimization` that implement the decision logic described in `META_ADS_OPTIMIZATION_STRATEGY.md`. Use `decision-engine.ts` for pause/scale/learning-phase checks and `statistical.ts` for Wilson-score confidence intervals before making automated adjustments.
+
 ## Contributing
 
 Before opening a PR, please read `CONTRIBUTING.md` for branch strategy, commit/PR hygiene, CI requirements, and local setup. PRs use the template in `.github/pull_request_template.md`.
