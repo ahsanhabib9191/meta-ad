@@ -1,17 +1,17 @@
-export { AdAccountModel } from './ad-account';
-export type { IAdAccount, AdAccountStatus } from './ad-account';
-
 export { CampaignModel } from './campaign';
 export type { ICampaign, CampaignStatus, CampaignObjective } from './campaign';
-
-export { PerformanceSnapshotModel } from './performance-snapshot';
-export type { IPerformanceSnapshot, EntityType } from './performance-snapshot';
 
 export { OptimizationLogModel } from './optimization-log';
 export type { IOptimizationLog, OptimizationEntity } from './optimization-log';
 
-export { AudienceInsightModel } from './audience-insight';
-export type { IAudienceInsight, InsightEntity, InsightDimension } from './audience-insight';
+export { TenantModel, Tenant } from './Tenant';
+export type { ITenant, PlanTier } from './Tenant';
 
-export { CreativeAssetModel } from './creative-asset';
-export type { ICreativeAsset, ICreativeUsageRef, CreativeType } from './creative-asset';
+export { MetaConnectionModel, MetaConnection } from './MetaConnection';
+export type { IMetaConnection, ConnectionStatus } from './MetaConnection';
+
+export { WebsiteAuditModel, WebsiteAudit } from './WebsiteAudit';
+export type { IWebsiteAudit, AuditStatus } from './WebsiteAudit';
+
+export { GeneratedCopyModel, GeneratedCopy } from './GeneratedCopy';
+export type { IGeneratedCopy, CopyContext, IUsedByRef } from './GeneratedCopy';

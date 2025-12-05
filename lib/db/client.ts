@@ -57,29 +57,7 @@ export async function connectDB(): Promise<mongoose.Connection> {
 /**
  * Initialize database with indexes and setup
  */
-export async function initializeDatabase(): Promise<void> {
-  await connectDB();
-  
-  // Import models to register them
-  const { CampaignModel } = await import('./models/campaign');
-  const { AdAccountModel } = await import('./models/ad-account');
-  const { PerformanceSnapshotModel } = await import('./models/performance-snapshot');
-  const { OptimizationLogModel } = await import('./models/optimization-log');
-  const { AudienceInsightModel } = await import('./models/audience-insight');
-  const { CreativeAssetModel } = await import('./models/creative-asset');
-
-  // Ensure indexes are created
-  await Promise.all([
-    CampaignModel.syncIndexes(),
-    AdAccountModel.syncIndexes(),
-    PerformanceSnapshotModel.syncIndexes(),
-    OptimizationLogModel.syncIndexes(),
-    AudienceInsightModel.syncIndexes(),
-    CreativeAssetModel.syncIndexes(),
-  ]);
-
-  console.log('✅ Database initialized with all models and indexes');
-}
+// initializeDatabase relocated to lib/db/index.ts
 
 /**
  * Close database connection

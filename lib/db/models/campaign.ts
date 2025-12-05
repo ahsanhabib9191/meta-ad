@@ -18,11 +18,11 @@ export interface ICampaign extends Document {
 
 const CampaignSchema = new Schema<ICampaign>(
   {
-    campaignId: { type: String, required: true, index: true },
-    accountId: { type: String, required: true, index: true },
+  campaignId: { type: String, required: true },
+  accountId: { type: String, required: true },
     name: { type: String, required: true },
-    objective: { type: String, required: true, index: true },
-    status: { type: String, required: true, index: true },
+  objective: { type: String, required: true },
+  status: { type: String, required: true },
     budget: { type: Number, required: true, min: 0 },
     startDate: { type: Date },
     endDate: { type: Date },
