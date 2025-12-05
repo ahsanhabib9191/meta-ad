@@ -2,7 +2,6 @@
   "name": "meta-ads-optimization-db",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test:db": "ts-node scripts/test-db.ts"

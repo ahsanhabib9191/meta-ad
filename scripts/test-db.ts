@@ -1,4 +1,5 @@
-import { initializeDatabase, disconnectDB } from '../lib/db/client';
+import { initializeDatabase } from '../lib/db/index';
+import { disconnectDB } from '../lib/db/client';
 import { connectRedis, disconnectRedis } from '../lib/db/redis';
 
 async function main() {
