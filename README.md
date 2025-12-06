@@ -108,6 +108,22 @@ The reference covers:
 - **Optimization goals** - awareness, consideration, conversion objectives
 - **Complete field reference** - all available API fields for campaigns, ad sets, ads
 
+## Meta Recent Updates & New Features
+
+Latest Meta/Facebook advertising platform updates and API changes:
+
+📖 **[Meta Recent Updates Guide →](docs/META_RECENT_UPDATES.md)**
+
+The guide covers:
+- **Advantage+ campaigns** - AI-powered optimization, shopping/app campaigns, 10-20% better ROAS
+- **Advantage+ creative** - dynamic creative testing, automatic enhancements, catalog optimization
+- **API v21.0 → v22.0 migration** - breaking changes, new fields, rate limit updates
+- **iOS 14.5+ privacy changes** - ATT, AEM, event priorities, attribution windows
+- **Reels placements** - new video formats, 9:16 aspect ratio, specifications
+- **Meta Verified for Business** - verification status, benefits, API integration
+- **Messaging APIs** - WhatsApp Business API, Messenger updates
+- **Implementation guide** - migration checklist, code examples, testing
+
 ## AI-Powered Ad Copy Generation
 
 Guide to implementing AI-powered ad copy generation with OpenAI, Claude, and other LLMs:
