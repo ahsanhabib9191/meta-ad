@@ -566,7 +566,7 @@ const VIDEO_SPECS = {
     formats: ['MP4', 'MOV']
   },
   feed: {
-    aspectRatio: '1:1' || '4:5' || '16:9',
+    aspectRatio: ['1:1', '4:5', '16:9'], // Supported aspect ratios
     minDuration: 1,
     maxDuration: 241,
     formats: ['MP4', 'MOV', 'GIF']
