@@ -108,6 +108,21 @@ The reference covers:
 - **Optimization goals** - awareness, consideration, conversion objectives
 - **Complete field reference** - all available API fields for campaigns, ad sets, ads
 
+## AI-Powered Ad Copy Generation
+
+Guide to implementing AI-powered ad copy generation with OpenAI, Claude, and other LLMs:
+
+📖 **[AI Copy Generation Guide →](docs/AI_COPY_GENERATION.md)**
+
+The guide covers:
+- **OpenAI & Claude integration** - GPT-4, GPT-4o, Claude 3.5 Sonnet implementation
+- **Copy generation strategies** - product-focused, audience-targeted, retargeting copy
+- **Creative management** - linking copy to ads, tracking usage across campaigns
+- **A/B testing** - setting up copy tests, analyzing results, finding winners
+- **Quality scoring** - automated scoring based on Meta best practices
+- **Creative refresh** - detecting fatigue, generating new variants, performance optimization
+- **Best practices** - prompt engineering, model selection, performance tips
+
 ## Notes
 
 - Indexes are synchronized during `initializeDatabase()` in `lib/db/index.ts`.
