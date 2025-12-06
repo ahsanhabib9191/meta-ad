@@ -598,16 +598,20 @@ async function analyzeCopyTestResults(
     testName: test.testName,
     winner: results[0],
     allResults: results,
-    recommendation: results[0].performanceScore > results[1].performanceScore * 1.2
+    recommendation: results.length >= 2 && results[0].performanceScore > results[1].performanceScore * 1.2
       ? 'Clear winner - scale this copy'
+      : results.length < 2
+      ? 'Need at least 2 variants to compare'
       : 'Results inconclusive - continue testing'
   };
 }
 
+const DEFAULT_HIGH_CPC = 999; // Fallback for missing CPC data (penalizes in score calculation)
+
 function calculatePerformanceScore(insights: any): number {
   const ctr = parseFloat(insights.ctr || 0);
   const conversions = parseInt(insights.conversions || 0);
-  const cpc = parseFloat(insights.cpc || 999);
+  const cpc = parseFloat(insights.cpc || DEFAULT_HIGH_CPC);
   
   // Weighted score: CTR (40%), Conversions (40%), CPC (20%)
   return (ctr * 40) + (conversions * 4) + ((1 / cpc) * 20);
