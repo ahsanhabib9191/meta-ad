@@ -79,6 +79,19 @@ These are **reference implementations** showing how to use the database models i
 
 📖 **[Read the API Examples README →](examples/api/README.md)**
 
+## Meta OAuth Integration
+
+Learn how to connect Facebook accounts, access Business Manager, and list Facebook Pages:
+
+📖 **[Meta OAuth Integration Guide →](docs/META_OAUTH_INTEGRATION.md)**
+
+The guide covers:
+- Facebook Login OAuth flow implementation
+- Business Manager account access
+- Listing and managing Facebook Pages
+- Token management and refresh
+- Complete code examples for Next.js
+
 ## Notes
 
 - Indexes are synchronized during `initializeDatabase()` in `lib/db/index.ts`.
