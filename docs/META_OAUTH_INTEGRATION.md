@@ -2,6 +2,8 @@
 
 This guide explains how to implement Facebook Login with Business Manager access and retrieve Facebook Pages using this database layer.
 
+> **Note:** Code examples use `@your-org/meta-ad-db` as a placeholder for this package. Replace it with the actual package name when you install this repository (e.g., if installed locally or from Git, adjust import paths accordingly).
+
 ## Table of Contents
 
 1. [Overview](#overview)
