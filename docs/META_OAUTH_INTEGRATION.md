@@ -4,6 +4,8 @@ This guide explains how to implement Facebook Login with Business Manager access
 
 > **Note:** Code examples use `@your-org/meta-ad-db` as a placeholder for this package. Replace it with the actual package name when you install this repository (e.g., if installed locally or from Git, adjust import paths accordingly).
 
+> **See Also:** For comprehensive data reference including Pixel data, targeting options, and all available API fields, see the **[Meta Ads Data Reference Guide](META_DATA_REFERENCE.md)**.
+
 ## Table of Contents
 
 1. [Overview](#overview)

@@ -92,6 +92,22 @@ The guide covers:
 - Token management and refresh
 - Complete code examples for Next.js
 
+## Meta Ads Data Reference
+
+Comprehensive guide to all data you can retrieve from Meta's Marketing API:
+
+📖 **[Meta Ads Data Reference →](docs/META_DATA_REFERENCE.md)**
+
+The reference covers:
+- **Facebook Pixel data** - conversion tracking, custom events, server-side API
+- **Business Manager metrics** - account age, historical ad spend, owned assets
+- **Ad Account data** - spend caps, balances, account statistics
+- **Targeting options** - interests, custom audiences, lookalikes, retargeting
+- **Demographics & geography** - age, gender, location targeting with reach estimates
+- **Placements** - Facebook, Instagram, Audience Network, Messenger positions
+- **Optimization goals** - awareness, consideration, conversion objectives
+- **Complete field reference** - all available API fields for campaigns, ad sets, ads
+
 ## Notes
 
 - Indexes are synchronized during `initializeDatabase()` in `lib/db/index.ts`.
