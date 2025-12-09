@@ -1,7 +1,7 @@
 import { MetaConnection, IMetaConnection } from '../../db/models/MetaConnection';
 import logger from '../../utils/logger';
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v17.0';
+const GRAPH_VERSION = process.env.META_API_VERSION || process.env.META_GRAPH_VERSION || 'v21.0';
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
 const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_VERSION}`;
