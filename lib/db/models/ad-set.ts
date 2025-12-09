@@ -74,6 +74,8 @@ AdSetSchema.index({ accountId: 1, status: 1 });
 AdSetSchema.index({ status: 1 });
 AdSetSchema.index({ learningPhaseStatus: 1 });
 AdSetSchema.index({ status: 1, learningPhaseStatus: 1 });
+// Compound index for common filtering by account, status, and learning phase
+AdSetSchema.index({ accountId: 1, status: 1, learningPhaseStatus: 1 });
 
 export const AdSetModel: Model<IAdSet> =
   mongoose.models.AdSet || mongoose.model<IAdSet>('AdSet', AdSetSchema);

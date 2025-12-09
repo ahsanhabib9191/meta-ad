@@ -51,7 +51,9 @@ export function decrypt(encryptedText: string): string {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
+  // Use 12 rounds for better security (per repository security guidelines)
+  // This is a good balance between security and performance
+  const saltRounds = 12;
   return bcrypt.hash(password, saltRounds);
 }
 

@@ -75,6 +75,8 @@ AdSchema.index({ campaignId: 1, status: 1 });
 AdSchema.index({ accountId: 1, status: 1 });
 AdSchema.index({ effectiveStatus: 1 });
 AdSchema.index({ 'creative.creativeId': 1 });
+// Compound index for common filtering patterns
+AdSchema.index({ accountId: 1, status: 1, effectiveStatus: 1 });
 
 export const AdModel: Model<IAd> =
   mongoose.models.Ad || mongoose.model<IAd>('Ad', AdSchema);

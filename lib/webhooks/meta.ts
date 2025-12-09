@@ -61,7 +61,11 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
         return;
       }
 
-      const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id }).exec();
+      // Fetch connection (not using lean here to preserve model methods)
+      const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id })
+        .select('tenantId adAccountId accessToken refreshToken tokenExpiresAt status')
+        .exec();
+        
       if (!connection) {
         logger.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });
         return;

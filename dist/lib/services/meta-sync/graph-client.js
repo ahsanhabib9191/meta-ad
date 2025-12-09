@@ -83,13 +83,26 @@ async function ensureConnectionAccessToken(connection) {
     }
     return { connection, accessToken: connection.getAccessToken() };
 }
-async function fetchGraphEdges(accessToken, path, params) {
+async function fetchGraphEdges(accessToken, path, params, maxResults) {
     const results = [];
     let nextUrl = buildUrl(path, params).toString();
-    while (nextUrl) {
+    const limit = maxResults || 10000; // Default limit to prevent unbounded memory growth
+    while (nextUrl && results.length < limit) {
         const payload = await fetchJson(nextUrl, accessToken);
         if (payload?.data) {
-            results.push(...payload.data);
+            // Only add items up to the limit
+            const remainingSpace = limit - results.length;
+            const itemsToAdd = payload.data.slice(0, remainingSpace);
+            results.push(...itemsToAdd);
+            // Stop if we've reached the limit
+            if (results.length >= limit) {
+                logger_1.default.warn('fetchGraphEdges reached max results limit', {
+                    path,
+                    limit,
+                    actualCount: results.length
+                });
+                break;
+            }
         }
         nextUrl = payload?.paging?.next || '';
     }

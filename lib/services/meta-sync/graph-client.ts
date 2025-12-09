@@ -117,15 +117,30 @@ export async function ensureConnectionAccessToken(
 export async function fetchGraphEdges<T>(
   accessToken: string,
   path: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  maxResults?: number
 ): Promise<T[]> {
   const results: T[] = [];
   let nextUrl = buildUrl(path, params).toString();
+  const limit = maxResults || 10000; // Default limit to prevent unbounded memory growth
 
-  while (nextUrl) {
+  while (nextUrl && results.length < limit) {
     const payload = await fetchJson<GraphResponse<T>>(nextUrl, accessToken);
     if (payload?.data) {
-      results.push(...payload.data);
+      // Only add items up to the limit
+      const remainingSpace = limit - results.length;
+      const itemsToAdd = payload.data.slice(0, remainingSpace);
+      results.push(...itemsToAdd);
+      
+      // Stop if we've reached the limit
+      if (results.length >= limit) {
+        logger.warn('fetchGraphEdges reached max results limit', { 
+          path, 
+          limit, 
+          actualCount: results.length 
+        });
+        break;
+      }
     }
 
     nextUrl = payload?.paging?.next || '';
