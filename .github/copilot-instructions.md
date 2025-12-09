@@ -16,6 +16,20 @@ This repository contains the MongoDB + Redis database layer and initialization t
 - **Infrastructure:** Docker Compose for local development
 - **CI/CD:** GitHub Actions
 
+## Architecture Overview
+
+This is a **database and middleware layer** for a Meta ads optimization system:
+
+- **Multi-tenant architecture:** Each tenant has isolated data and API keys
+- **Encryption at rest:** Sensitive data (OAuth tokens, API keys) encrypted using AES-256-GCM
+- **Stateless authentication:** JWT tokens for API authentication
+- **Rate limiting:** Redis-backed rate limiting per tenant/user
+- **Audit logging:** All optimization decisions logged for compliance
+- **Real-time sync:** Webhook handlers for Meta events (leads, conversions)
+- **Batch processing:** Scheduled jobs for campaign optimization and reporting
+
+The system is designed to be **imported as a library** by API servers, workers, and webhooks.
+
 ## Project Structure
 
 ```
@@ -28,22 +42,33 @@ lib/
 │   ├── auth.ts      # JWT authentication
 │   ├── error-handler.ts
 │   └── rate-limit.ts
-└── utils/           # Utility functions
-    ├── crypto.ts    # Encryption/decryption utilities
-    ├── logger.ts    # Winston logging setup
-    ├── meta-scopes.ts
-    └── validators.ts
+├── services/        # Business logic and external integrations
+│   └── meta-sync/   # Meta Graph API client and sync service
+├── utils/           # Utility functions
+│   ├── crypto.ts    # Encryption/decryption utilities
+│   ├── logger.ts    # Winston logging setup
+│   ├── meta-scopes.ts
+│   └── validators.ts
+└── webhooks/        # Webhook handlers
+    └── meta.ts      # Meta webhooks (lead forms, conversions)
 scripts/             # Test and utility scripts
+examples/            # Example API implementations
 ```
 
 ## Key Models
 
-- **Tenant:** Multi-tenant organization/user accounts
-- **MetaConnection:** OAuth tokens and Meta Business account connections
-- **AdAccount, Campaign:** Meta advertising entities
-- **AudienceInsight, PerformanceSnapshot:** Analytics and optimization data
-- **WebsiteAudit, GeneratedCopy:** AI-generated content and audits
-- **OptimizationLog:** Audit trail for automated decisions
+- **Tenant:** Multi-tenant organization/user accounts with API key management
+- **MetaConnection:** Encrypted OAuth tokens and Meta Business account connections
+- **AdAccount:** Meta Ad Account entities with configuration and status
+- **Campaign:** Ad campaigns with budget, objective, and status tracking
+- **AdSet:** Ad sets within campaigns with targeting and scheduling
+- **Ad:** Individual ads with creative assets and performance metrics
+- **AudienceInsight:** Audience analytics and demographic data
+- **PerformanceSnapshot:** Time-series performance metrics for optimization
+- **WebsiteAudit:** AI-generated website audits and recommendations
+- **GeneratedCopy:** AI-generated ad copy and creative suggestions
+- **CreativeAsset:** Media assets (images, videos) for ads
+- **OptimizationLog:** Audit trail for automated optimization decisions
 
 ## Coding Standards
 
@@ -114,6 +139,17 @@ Required variables:
 - Run test scripts: `npm run test:db`, `npm run test:security`, `npm run test:auth`, `npm run test:rate`
 - Test scripts are in `scripts/` directory
 - Always test database connections and encryption before deployment
+- Run all tests: `npm run test:all`
+- Test categories:
+  - **validators:** Input validation with Zod schemas
+  - **crypto-advanced:** Encryption/decryption utilities
+  - **security:** Meta token encryption and API key lifecycle
+  - **models:** Mongoose model validation and operations
+  - **auth:** JWT authentication middleware
+  - **rate:** Redis-based rate limiting
+  - **redis:** Redis client connectivity
+  - **error-handler:** Error handling middleware
+  - **db:** Database initialization and index synchronization
 
 ### Branch Strategy
 
@@ -141,13 +177,43 @@ Required variables:
 4. Handle errors appropriately
 5. Add tests in `scripts/` if needed
 
+### Working with Services
+
+- Services contain business logic and external API integrations
+- Meta sync service (`lib/services/meta-sync/`) handles:
+  - Graph API client with retry logic and rate limiting
+  - Syncing campaigns, ad sets, ads, and insights from Meta
+  - Bulk operations and data synchronization
+- Keep services stateless and testable
+- Use dependency injection for database and external clients
+- Handle API errors gracefully with proper logging
+
+### Working with Webhooks
+
+- Webhook handlers in `lib/webhooks/` process real-time events
+- Meta webhooks (`lib/webhooks/meta.ts`) handle:
+  - Lead form submissions
+  - Conversion events
+  - Campaign updates
+- Always verify webhook signatures for security
+- Process webhooks asynchronously when possible
+- Log all webhook events for debugging
+- Return 200 OK quickly to prevent retries
+
 ### Working with Meta API
 
 - Reference `META_ADS_OPTIMIZATION_STRATEGY.md` for business logic
 - Meta API scopes are defined in `lib/utils/meta-scopes.ts`
 - Store OAuth tokens encrypted in MetaConnection model
-- Implement retry logic for API calls
-- Respect rate limits
+- Implement retry logic for API calls (exponential backoff)
+- Respect rate limits (200 calls per hour per user, 200 per app per user)
+- Use batch requests when possible to reduce API calls
+- Always handle Graph API errors gracefully:
+  - Error code 190: Token expired (re-authenticate)
+  - Error code 17: Throttled (back off and retry)
+  - Error code 100: Invalid parameter (validation error)
+- Cache frequently accessed data in Redis
+- Use the Meta sync service (`lib/services/meta-sync/`) for standardized API calls
 
 ## Performance Considerations
 
@@ -164,12 +230,56 @@ Required variables:
 - PRs must pass all checks before merge
 - Use GitHub Actions secrets for sensitive values
 
+## Debugging
+
+### Common Issues
+
+- **Connection refused errors:**
+  - Ensure MongoDB and Redis containers are running: `npm run docker:up`
+  - Check container health: `docker ps` or `npm run docker:logs`
+  - Wait 10-20 seconds for services to initialize
+
+- **Encryption errors:**
+  - Verify `ENCRYPTION_KEY` is set and is 64 hex characters (32 bytes)
+  - Check that existing tokens are properly encrypted
+  - Run migration: `npm run test:security`
+
+- **Authentication failures:**
+  - Verify `JWT_SECRET` or `NEXTAUTH_SECRET` is set
+  - Check token expiration and format
+  - Test with: `npm run test:auth`
+
+- **Rate limiting issues:**
+  - Adjust `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` in `.env`
+  - Check Redis connection for rate limit storage
+  - Test with: `npm run test:rate`
+
+### Debugging Tools
+
+- Use Winston logger with appropriate log levels
+- Enable debug logging: `LOG_LEVEL=debug`
+- Check logs directory for daily rotated log files
+- Use MongoDB Compass for database inspection
+- Use Redis CLI for cache/session debugging
+
 ## Documentation
 
 - Update README.md for user-facing changes
 - Update CONTRIBUTING.md for workflow changes
 - Document complex business logic inline
 - Keep this file updated with architectural changes
+
+## API Examples
+
+The `examples/api/` directory contains reference implementations for Next.js API routes:
+- Campaign management (create, list, update)
+- Ad set operations (CRUD operations)
+- Ad management with bulk operations
+- Authentication and authorization patterns
+- Rate limiting and error handling
+- Input validation with Zod schemas
+
+Use these examples as templates when building new API endpoints.
 
 ## Meta Ads Optimization Context
 
