@@ -58,7 +58,7 @@ async function run() {
   // Test AdSet model with nested targeting
   const adSet = await AdSetModel.create({
     adSetId: `adset-${testId}`,
-    campaignId: campaign.campaignId,
+    campaignId: campaign._id, // Use MongoDB _id instead of campaignId string
     accountId: campaign.accountId,
     name: 'Test AdSet',
     status: 'ACTIVE',
@@ -98,8 +98,8 @@ async function run() {
   // Test Ad model with creative and issues
   const ad = await AdModel.create({
     adId: `ad-${testId}`,
-    adSetId: adSet.adSetId,
-    campaignId: campaign.campaignId,
+    adSetId: adSet._id, // Use MongoDB _id
+    campaignId: campaign._id, // Use MongoDB _id
     accountId: campaign.accountId,
     name: 'Test Ad',
     status: 'ACTIVE',
@@ -140,8 +140,8 @@ async function run() {
   // Test Ad with disapproval
   const disapprovedAd = await AdModel.create({
     adId: `ad-disapproved-${testId}`,
-    adSetId: adSet.adSetId,
-    campaignId: campaign.campaignId,
+    adSetId: adSet._id, // Use MongoDB _id
+    campaignId: campaign._id, // Use MongoDB _id
     accountId: campaign.accountId,
     name: 'Disapproved Ad',
     status: 'PAUSED',
@@ -250,7 +250,7 @@ async function run() {
   const adSets = await Promise.all([
     AdSetModel.create({
       adSetId: `adset-1-${testId}`,
-      campaignId: campaign2.campaignId,
+      campaignId: campaign2._id, // Use MongoDB _id
       accountId: campaign2.accountId,
       name: 'AdSet 1',
       status: 'ACTIVE',
@@ -260,7 +260,7 @@ async function run() {
     }),
     AdSetModel.create({
       adSetId: `adset-2-${testId}`,
-      campaignId: campaign2.campaignId,
+      campaignId: campaign2._id, // Use MongoDB _id
       accountId: campaign2.accountId,
       name: 'AdSet 2',
       status: 'PAUSED',
@@ -271,11 +271,11 @@ async function run() {
   ]);
 
   // Query ad sets by campaign
-  const campaignAdSets = await AdSetModel.find({ campaignId: campaign2.campaignId });
+  const campaignAdSets = await AdSetModel.find({ campaignId: campaign2._id });
   if (campaignAdSets.length !== 2) throw new Error('Expected 2 ad sets for campaign');
 
   const activeAdSets = await AdSetModel.find({
-    campaignId: campaign2.campaignId,
+    campaignId: campaign2._id,
     status: 'ACTIVE',
   });
   if (activeAdSets.length !== 1) throw new Error('Expected 1 active ad set');
