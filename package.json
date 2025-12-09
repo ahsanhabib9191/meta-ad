@@ -17,6 +17,7 @@
     "test:error-handler": "ts-node scripts/test-error-handler.ts",
     "test:redis": "ts-node scripts/test-redis-client.ts",
     "test:crypto-advanced": "ts-node scripts/test-crypto-advanced.ts",
+    "security:scan": "bash scripts/security-scan.sh",
     "test:all": "npm run test:validators && npm run test:crypto-advanced && npm run test:security && npm run test:models && npm run test:auth && npm run test:rate && npm run test:redis && npm run test:error-handler && npm run test:db"
   },
   "dependencies": {
