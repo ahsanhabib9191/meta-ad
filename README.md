@@ -49,6 +49,7 @@ npm run docker:down
 - `npm run build` – TypeScript build
 - `npm run test:db` – Runs initialization and verifies DB connectivity
 - `npm run test:security` – Validates Meta token encryption at rest and Tenant API key lifecycle
+- `npm run security:scan` – Scans repository for potential secrets and security issues
 - `npm run docker:up` – Starts MongoDB 6 and Redis 7 via Docker Compose
 - `npm run docker:down` – Stops services
 - `npm run docker:logs` – Shows recent container logs
@@ -134,5 +135,19 @@ Add these to `.env` (see `.env.example`):
 ## Contributing
 
 Before opening a PR, please read `CONTRIBUTING.md` for branch strategy, commit/PR hygiene, CI requirements, and local setup. PRs use the template in `.github/pull_request_template.md`.
+
+### GitHub Copilot Configuration
+
+This repository is optimized for GitHub Copilot usage. Key resources:
+
+- **`.github/copilot-instructions.md`**: Comprehensive Copilot instructions covering repository structure, coding standards, and common tasks
+- **`CONTRIBUTING.md`**: Guidelines for using Copilot responsibly, including security best practices and testing requirements
+- **`.github/CODEOWNERS`**: Defines code ownership for automatic review assignments
+
+When using Copilot in this repository:
+- Always review and test generated code before committing
+- Follow TypeScript strict mode and existing patterns
+- Never accept suggestions with hardcoded secrets or sensitive data
+- Refer to the Copilot instructions for repository-specific guidance
 
 CI runs on PRs to `main` and pushes to feature branches. After your first CI run, branch protections can mark these checks as required: lint, typecheck, build, test. See `docs/branch-protection.md` for the exact GitHub settings.

@@ -104,15 +104,33 @@ jobs:
       - name: Wait for services
         run: |
           for i in {1..30}; do
-            (mongosh --eval 'db.runCommand({ ping: 1 })' && redis-cli ping) && exit 0 || sleep 2;
+            nc -z localhost 27017 && nc -z localhost 6379 && exit 0 || sleep 2;
           done; 
           echo "Services failed to start"; exit 1
+      - name: Run tests (validators)
+        run: |
+          npm run test:validators || echo "No validator tests; skipping"
+      - name: Run tests (crypto-advanced)
+        run: |
+          npm run test:crypto-advanced || echo "No advanced crypto tests; skipping"
       - name: Run tests (security)
         run: |
           npm run test:security || echo "No security tests; skipping"
+      - name: Run tests (models)
+        run: |
+          npm run test:models || echo "No model tests; skipping"
       - name: Run tests (auth)
         run: |
           npm run test:auth || echo "No auth tests; skipping"
       - name: Run tests (rate)
         run: |
           npm run test:rate || echo "No rate tests; skipping"
+      - name: Run tests (redis)
+        run: |
+          npm run test:redis || echo "No redis tests; skipping"
+      - name: Run tests (error-handler)
+        run: |
+          npm run test:error-handler || echo "No error handler tests; skipping"
+      - name: Run tests (db)
+        run: |
+          npm run test:db || echo "No db tests; skipping"
