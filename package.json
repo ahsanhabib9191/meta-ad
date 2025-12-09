@@ -11,6 +11,7 @@
     "test:models": "ts-node scripts/test-models.ts",
     "test:enums": "ts-node scripts/test-enum-validation.ts",
     "test:meta": "ts-node scripts/test-meta-connection.ts",
+    "test:oauth": "ts-node scripts/test-oauth.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs",
