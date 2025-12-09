@@ -14,6 +14,9 @@ export interface PerformanceMetric {
 }
 
 const SLOW_OPERATION_THRESHOLD_MS = 1000; // Log operations taking more than 1 second
+
+// NOTE: This array is not thread-safe. In worker threads scenarios, consider using
+// a thread-safe data structure or separate metrics collection per thread.
 const performanceMetrics: PerformanceMetric[] = [];
 const MAX_METRICS_IN_MEMORY = 1000;
 

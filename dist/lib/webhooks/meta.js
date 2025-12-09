@@ -39,10 +39,9 @@ async function handleMetaWebhook(body) {
         if (!entry.id || !entry.changes) {
             return;
         }
-        // Use lean() for better performance when querying connection
+        // Fetch connection (not using lean here to preserve model methods)
         const connection = await MetaConnection_1.MetaConnectionModel.findOne({ adAccountId: entry.id })
             .select('tenantId adAccountId accessToken refreshToken tokenExpiresAt status')
-            .lean()
             .exec();
         if (!connection) {
             logger_1.default.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });

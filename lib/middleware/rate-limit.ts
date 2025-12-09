@@ -18,6 +18,8 @@ export interface RateLimitOptions {
 // Cache tenant plans to avoid repeated DB queries
 const tenantPlanCache = new Map<string, { plan: string; expires: number }>();
 const TENANT_PLAN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_CLEANUP_PROBABILITY = 0.01; // 1% chance to run cleanup on each lookup
+const MAX_CACHE_SIZE = 1000; // Maximum number of cached tenant plans
 
 /**
  * Lua script for atomic rate limiting using sorted sets.
@@ -105,8 +107,8 @@ export async function rateLimitByTenant(req: IncomingMessage, tenantId: string):
       expires: now + TENANT_PLAN_CACHE_TTL_MS,
     });
     
-    // Clean up old cache entries periodically (every 100 lookups)
-    if (tenantPlanCache.size > 1000 && Math.random() < 0.01) {
+    // Clean up old cache entries periodically
+    if (tenantPlanCache.size > MAX_CACHE_SIZE && Math.random() < CACHE_CLEANUP_PROBABILITY) {
       for (const [key, value] of tenantPlanCache.entries()) {
         if (value.expires <= now) {
           tenantPlanCache.delete(key);

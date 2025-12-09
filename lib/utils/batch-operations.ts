@@ -39,14 +39,17 @@ export async function batchUpsert<T extends Document>(
     const bulkOps = batch.map((op) => ({
       updateOne: {
         filter: op.filter,
-        update: { $set: op.update },
+        update: { $set: op.update } as any, // Type assertion needed for dynamic updates
         upsert: true,
       },
     }));
 
     try {
-      const bulkResult = await model.bulkWrite(bulkOps, { ordered: false });
-      result.successful += bulkResult.upsertedCount + bulkResult.modifiedCount;
+      const bulkResult = await model.bulkWrite(bulkOps as any);
+      // Count all successful operations: insertions, upserts, and modifications
+      result.successful += (bulkResult.insertedCount || 0) + 
+                          (bulkResult.upsertedCount || 0) + 
+                          (bulkResult.modifiedCount || 0);
     } catch (error) {
       result.failed += batch.length;
       result.errors.push({
