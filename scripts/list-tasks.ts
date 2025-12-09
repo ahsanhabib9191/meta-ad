@@ -52,7 +52,7 @@ async function validateAdSetModel(): Promise<TaskStatus[]> {
     const indexes = schema.indexes();
     tasks.push({
       task: '1.3 AdSet Indexes Created',
-      status: indexes.length >= 5 ? 'completed' : 'failed',
+      status: indexes.length >= 6 ? 'completed' : 'failed',
       details: `${indexes.length} indexes defined (expected 6)`
     });
 
@@ -131,7 +131,7 @@ async function validateAdModel(): Promise<TaskStatus[]> {
     const indexes = schema.indexes();
     tasks.push({
       task: '2.3 Ad Indexes Created',
-      status: indexes.length >= 5 ? 'completed' : 'failed',
+      status: indexes.length >= 6 ? 'completed' : 'failed',
       details: `${indexes.length} indexes defined (expected 6)`
     });
 
@@ -279,15 +279,16 @@ async function validateModelExports(): Promise<TaskStatus[]> {
       details: AdExport !== undefined ? 'AdModel exported from index' : 'AdModel not found in exports'
     });
 
-    // Check type exports
-    const exports = await import('../lib/db/models/index');
-    const hasAdSetTypes = 'IAdSet' in exports || typeof exports === 'object';
-    const hasAdTypes = 'IAd' in exports || typeof exports === 'object';
+    // Check type exports - TypeScript types can't be checked at runtime
+    // but we can verify the module exports the models correctly which confirms
+    // the type exports are also present (they're in the same export statements)
+    const exportsObject = await import('../lib/db/models/index');
+    const hasTypeExports = 'AdSetModel' in exportsObject && 'AdModel' in exportsObject;
 
     tasks.push({
       task: '4.3 Type Exports Available',
-      status: 'completed',
-      details: 'TypeScript types exported from models/index.ts'
+      status: hasTypeExports ? 'completed' : 'failed',
+      details: hasTypeExports ? 'TypeScript types exported from models/index.ts (verified via model exports)' : 'Type exports missing or incomplete'
     });
 
   } catch (error: any) {

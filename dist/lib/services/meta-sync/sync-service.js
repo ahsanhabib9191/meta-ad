@@ -217,12 +217,18 @@ function mapIssues(effectiveStatus) {
 async function syncMetaConnection(connection) {
     const { connection: safeConnection, accessToken } = await (0, graph_client_1.ensureConnectionAccessToken)(connection);
     const accountId = safeConnection.adAccountId;
-    const campaigns = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/campaigns`, (0, graph_client_1.buildGraphEdgeParams)(campaignFields));
-    const adSets = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/adsets`, (0, graph_client_1.buildGraphEdgeParams)(adSetFields));
-    const ads = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/ads`, (0, graph_client_1.buildGraphEdgeParams)(adFields));
-    await Promise.all(campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)));
-    await Promise.all(adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)));
-    await Promise.all(ads.map((payload) => upsertAdFromGraph(payload, accountId)));
+    // Fetch campaigns, adsets, and ads in parallel for better performance
+    const [campaigns, adSets, ads] = await Promise.all([
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/campaigns`, (0, graph_client_1.buildGraphEdgeParams)(campaignFields)),
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/adsets`, (0, graph_client_1.buildGraphEdgeParams)(adSetFields)),
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/ads`, (0, graph_client_1.buildGraphEdgeParams)(adFields)),
+    ]);
+    // Upsert all entities in parallel
+    await Promise.all([
+        ...campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)),
+        ...adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)),
+        ...ads.map((payload) => upsertAdFromGraph(payload, accountId)),
+    ]);
     await MetaConnection_1.MetaConnectionModel.findByIdAndUpdate(safeConnection._id, { lastSyncedAt: new Date() }).exec();
     logger_1.default.info('Meta connection synced', {
         tenantId: safeConnection.tenantId,
