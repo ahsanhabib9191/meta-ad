@@ -69,6 +69,8 @@ scripts/             # Test and utility scripts
 - Hash passwords with bcrypt (cost factor 12)
 - Validate all user inputs with Zod schemas
 - Use JWT for stateless authentication with reasonable expiry times
+- Run `npm run security:scan` before committing sensitive changes
+- See `SECURITY.md` for comprehensive security guidelines
 
 ### Error Handling
 
