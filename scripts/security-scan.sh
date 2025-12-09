@@ -36,8 +36,18 @@ report_success() {
 
 # 1. Check for common secret patterns in tracked files
 echo "1️⃣  Checking for hardcoded secrets..."
-if git grep -E "(api[_-]?key|secret|password|token|access[_-]?key)[\"'\s]*[:=][\"'\s]*[a-zA-Z0-9]{8,}" -- '*.ts' '*.js' '*.json' '*.yml' '*.yaml' 2>/dev/null | grep -v "process.env" | grep -v ".example" | grep -v "test" | grep -v "//" | grep -v "^\s*\*"; then
-    report_issue "Potential hardcoded secrets found in code"
+# Check for potential secrets in code files
+secret_pattern="(api[_-]?key|secret|password|token|access[_-]?key)[\"'\s]*[:=][\"'\s]*[a-zA-Z0-9]{8,}"
+git_results=$(git grep -E "$secret_pattern" -- '*.ts' '*.js' '*.json' '*.yml' '*.yaml' 2>/dev/null || true)
+
+if [ -n "$git_results" ]; then
+    # Filter out false positives
+    filtered=$(echo "$git_results" | grep -v "process.env" | grep -v ".example" | grep -v "test" | grep -v "//" | grep -v "^\s*\*" || true)
+    if [ -n "$filtered" ]; then
+        report_issue "Potential hardcoded secrets found in code"
+    else
+        report_success "No obvious hardcoded secrets detected"
+    fi
 else
     report_success "No obvious hardcoded secrets detected"
 fi
@@ -111,7 +121,8 @@ fi
 # 8. Check for MongoDB connection strings
 echo ""
 echo "8️⃣  Checking for hardcoded MongoDB URIs..."
-if git grep -E "mongodb://[^/]+:[^@]+@" -- '*.ts' '*.js' | grep -v "process.env" | grep -v "localhost" | grep -v "//"; then
+# Check for both mongodb:// and mongodb+srv:// with credentials
+if git grep -E "mongodb(\+srv)?://[^/]*:[^@/]+@" -- '*.ts' '*.js' | grep -v "process.env" | grep -v "localhost" | grep -v "//"; then
     report_issue "Hardcoded MongoDB URI with credentials found"
 else
     report_success "No hardcoded MongoDB URIs detected"
@@ -120,7 +131,8 @@ fi
 # 9. Check for JWT secrets
 echo ""
 echo "9️⃣  Checking for hardcoded JWT secrets..."
-if git grep -E "jwt[_-]?secret[\"'\s]*[:=][\"'\s]*['\"][a-zA-Z0-9]{10,}" -- '*.ts' '*.js' | grep -v "process.env"; then
+# Check for JWT secrets with or without quotes
+if git grep -E "jwt[_-]?secret[\"'\s]*[:=][\"'\s]*[a-zA-Z0-9]{10,}" -- '*.ts' '*.js' | grep -v "process.env"; then
     report_issue "Hardcoded JWT secret found"
 else
     report_success "No hardcoded JWT secrets detected"
