@@ -80,6 +80,66 @@ These are **reference implementations** showing how to use the database models i
 
 📖 **[Read the API Examples README →](examples/api/README.md)**
 
+## Meta OAuth Integration
+
+Learn how to connect Facebook accounts, access Business Manager, and list Facebook Pages:
+
+📖 **[Meta OAuth Integration Guide →](docs/META_OAUTH_INTEGRATION.md)**
+
+The guide covers:
+- Facebook Login OAuth flow implementation
+- Business Manager account access
+- Listing and managing Facebook Pages
+- Token management and refresh
+- Complete code examples for Next.js
+
+## Meta Ads Data Reference
+
+Comprehensive guide to all data you can retrieve from Meta's Marketing API:
+
+📖 **[Meta Ads Data Reference →](docs/META_DATA_REFERENCE.md)**
+
+The reference covers:
+- **Facebook Pixel data** - conversion tracking, custom events, server-side API
+- **Business Manager metrics** - account age, historical ad spend, owned assets
+- **Ad Account data** - spend caps, balances, account statistics
+- **Targeting options** - interests, custom audiences, lookalikes, retargeting
+- **Demographics & geography** - age, gender, location targeting with reach estimates
+- **Placements** - Facebook, Instagram, Audience Network, Messenger positions
+- **Optimization goals** - awareness, consideration, conversion objectives
+- **Complete field reference** - all available API fields for campaigns, ad sets, ads
+
+## Meta Recent Updates & New Features
+
+Latest Meta/Facebook advertising platform updates and API changes:
+
+📖 **[Meta Recent Updates Guide →](docs/META_RECENT_UPDATES.md)**
+
+The guide covers:
+- **Advantage+ campaigns** - AI-powered optimization, shopping/app campaigns, 10-20% better ROAS
+- **Advantage+ creative** - dynamic creative testing, automatic enhancements, catalog optimization
+- **API v21.0 → v22.0 migration** - breaking changes, new fields, rate limit updates
+- **iOS 14.5+ privacy changes** - ATT, AEM, event priorities, attribution windows
+- **Reels placements** - new video formats, 9:16 aspect ratio, specifications
+- **Meta Verified for Business** - verification status, benefits, API integration
+- **Messaging APIs** - WhatsApp Business API, Messenger updates
+- **Implementation guide** - migration checklist, code examples, testing
+
+## AI-Powered Ad Copy Generation
+
+Guide to implementing AI-powered ad copy generation with OpenAI, Claude, and other LLMs:
+
+📖 **[AI Copy Generation Guide →](docs/AI_COPY_GENERATION.md)**
+
+The guide covers:
+- **OpenAI & Claude integration** - GPT-4, GPT-4o, Claude 3.5 Sonnet implementation
+- **Copy generation strategies** - product-focused, audience-targeted, retargeting copy
+- **Creative management** - linking copy to ads, tracking usage across campaigns
+- **A/B testing** - setting up copy tests, analyzing results, finding winners
+- **Quality scoring** - automated scoring based on Meta best practices
+- **Creative refresh** - detecting fatigue, generating new variants, performance optimization
+- **Best practices** - prompt engineering, model selection, performance tips
+
 ## Notes
 
 - Indexes are synchronized during `initializeDatabase()` in `lib/db/index.ts`.
