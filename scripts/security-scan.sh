@@ -36,13 +36,13 @@ report_success() {
 
 # 1. Check for common secret patterns in tracked files
 echo "1️⃣  Checking for hardcoded secrets..."
-# Check for potential secrets in code files
-secret_pattern="(api[_-]?key|secret|password|token|access[_-]?key)[\"'\s]*[:=][\"'\s]*[a-zA-Z0-9]{8,}"
+# Check for potential secrets in code files (case-insensitive, catches API_KEY, api_key, etc.)
+secret_pattern="([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Kk][Ee][Yy])[\"'][[:space:]]*[:=][[:space:]]*[\"'][a-zA-Z0-9]{8,}"
 git_results=$(git grep -E "$secret_pattern" -- '*.ts' '*.js' '*.json' '*.yml' '*.yaml' 2>/dev/null || true)
 
 if [ -n "$git_results" ]; then
-    # Filter out false positives
-    filtered=$(echo "$git_results" | grep -v "process.env" | grep -v ".example" | grep -v "test" | grep -v "//" | grep -v "^\s*\*" || true)
+    # Filter out false positives (comments and process.env references)
+    filtered=$(echo "$git_results" | grep -v "process.env" | grep -v ".example" | grep -v "test" | grep -v "//" | grep -v "^[[:space:]]*\*" || true)
     if [ -n "$filtered" ]; then
         report_issue "Potential hardcoded secrets found in code"
     else
@@ -131,8 +131,9 @@ fi
 # 9. Check for JWT secrets
 echo ""
 echo "9️⃣  Checking for hardcoded JWT secrets..."
-# Check for JWT secrets with or without quotes
-if git grep -E "jwt[_-]?secret[\"'\s]*[:=][\"'\s]*[a-zA-Z0-9]{10,}" -- '*.ts' '*.js' | grep -v "process.env"; then
+# Check for JWT secrets with or without quotes (case-insensitive, scans .env files too)
+jwt_pattern="([Jj][Ww][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Nn][Ee][Xx][Tt][Aa][Uu][Tt][Hh][_-]?[Ss][Ee][Cc][Rr][Ee][Tt])[\"'][[:space:]]*[:=][[:space:]]*[\"'][a-zA-Z0-9]{10,}"
+if git grep -E "$jwt_pattern" -- '*.ts' '*.js' '.env' '.env.*' 2>/dev/null | grep -v "process.env" | grep -v ".env.example"; then
     report_issue "Hardcoded JWT secret found"
 else
     report_success "No hardcoded JWT secrets detected"

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import { IAdSet } from './ad-set';
+import { ICampaign } from './campaign';
 
 export type AdStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DRAFT';
 export type AdEffectiveStatus = 'ACTIVE' | 'PAUSED' | 'DISAPPROVED' | 'PENDING_REVIEW' | 'ARCHIVED' | 'DELETED' | 'ADSET_PAUSED' | 'CAMPAIGN_PAUSED';
@@ -25,8 +27,8 @@ export interface IAdCreative {
 
 export interface IAd extends Document {
   adId: string;
-  adSetId: string;
-  campaignId: string;
+  adSetId: IAdSet['_id'];
+  campaignId: ICampaign['_id'];
   accountId: string;
   name: string;
   status: AdStatus;
@@ -56,8 +58,8 @@ const AdCreativeSchema = new Schema<IAdCreative>({
 
 const AdSchema = new Schema<IAd>({
   adId: { type: String, required: true },
-  adSetId: { type: String, required: true },
-  campaignId: { type: String, required: true },
+  adSetId: { type: Schema.Types.ObjectId, ref: 'AdSet' },
+  campaignId: { type: Schema.Types.ObjectId, ref: 'Campaign' },
   accountId: { type: String, required: true },
   name: { type: String, required: true },
   status: { type: String, required: true, enum: AD_STATUS_VALUES },

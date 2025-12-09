@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import { ICampaign } from './campaign';
 
 export type AdSetStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'DRAFT';
 export type LearningPhaseStatus = 'LEARNING' | 'ACTIVE' | 'LEARNING_LIMITED' | 'NOT_STARTED';
@@ -20,7 +21,7 @@ export interface ITargeting {
 
 export interface IAdSet extends Document {
   adSetId: string;
-  campaignId: string;
+  campaignId: ICampaign['_id'];
   accountId: string;
   name: string;
   status: AdSetStatus;
@@ -51,7 +52,7 @@ const TargetingSchema = new Schema<ITargeting>({
 
 const AdSetSchema = new Schema<IAdSet>({
   adSetId: { type: String, required: true },
-  campaignId: { type: String, required: true },
+  campaignId: { type: Schema.Types.ObjectId, ref: 'Campaign' },
   accountId: { type: String, required: true },
   name: { type: String, required: true },
   status: { type: String, required: true, enum: AD_SET_STATUS_VALUES },
