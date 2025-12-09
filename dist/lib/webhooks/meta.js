@@ -34,34 +34,47 @@ async function handleMetaWebhook(body) {
         logger_1.default.warn('Meta webhook received without entry data');
         return;
     }
-    for (const entry of body.entry) {
+    // Process all entries in parallel using Promise.allSettled to prevent one failure from canceling others
+    const entryResults = await Promise.allSettled(body.entry.map(async (entry) => {
         if (!entry.id || !entry.changes) {
-            continue;
+            return;
         }
         const connection = await MetaConnection_1.MetaConnectionModel.findOne({ adAccountId: entry.id }).exec();
         if (!connection) {
             logger_1.default.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });
-            continue;
+            return;
         }
-        for (const change of entry.changes) {
-            try {
-                if (change.field === 'campaign' && change.value?.id) {
-                    await (0, sync_service_1.syncCampaignFromWebhook)(connection, change.value.id);
-                }
-                else if (change.field === 'adset' && change.value?.id) {
-                    await (0, sync_service_1.syncAdSetFromWebhook)(connection, change.value.id);
-                }
-                else if (change.field === 'ad' && change.value?.id) {
-                    await (0, sync_service_1.syncAdFromWebhook)(connection, change.value.id);
-                }
+        // Process all changes for this entry in parallel with individual error handling
+        const changeResults = await Promise.allSettled(entry.changes.map(async (change) => {
+            if (change.field === 'campaign' && change.value?.id) {
+                await (0, sync_service_1.syncCampaignFromWebhook)(connection, change.value.id);
             }
-            catch (error) {
+            else if (change.field === 'adset' && change.value?.id) {
+                await (0, sync_service_1.syncAdSetFromWebhook)(connection, change.value.id);
+            }
+            else if (change.field === 'ad' && change.value?.id) {
+                await (0, sync_service_1.syncAdFromWebhook)(connection, change.value.id);
+            }
+        }));
+        // Log any failed changes
+        changeResults.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                const change = entry.changes[index];
                 logger_1.default.error('Failed to process Meta webhook change', {
                     adAccountId: entry.id,
-                    change: change.field,
-                    error,
+                    change: change?.field,
+                    error: result.reason,
                 });
             }
+        });
+    }));
+    // Log any failed entries
+    entryResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            logger_1.default.error('Failed to process Meta webhook entry', {
+                entryIndex: index,
+                error: result.reason,
+            });
         }
-    }
+    });
 }

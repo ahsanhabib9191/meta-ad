@@ -50,9 +50,28 @@ npm run docker:down
 - `npm run test:db` – Runs initialization and verifies DB connectivity
 - `npm run test:security` – Validates Meta token encryption at rest and Tenant API key lifecycle
 - `npm run security:scan` – Scans repository for potential secrets and security issues
+- `npm run list:tasks` – Validates implementation status of AdSet and Ad models (35 checks)
 - `npm run docker:up` – Starts MongoDB 6 and Redis 7 via Docker Compose
 - `npm run docker:down` – Stops services
 - `npm run docker:logs` – Shows recent container logs
+
+## Task Status
+
+To view comprehensive implementation status and validation results:
+
+📋 **[View Task Status →](TASK_STATUS.md)**
+
+This document includes:
+- Detailed breakdown of all completed implementation tasks
+- Automated validation results (35/35 checks passing)
+- Usage examples for AdSet and Ad models
+- Data model relationships and indexing strategy
+- Migration notes and performance considerations
+
+Quick validation:
+```bash
+npm run list:tasks
+```
 
 ## Troubleshooting
 
