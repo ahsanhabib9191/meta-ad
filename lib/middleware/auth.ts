@@ -25,7 +25,8 @@ export async function verifyAuth(req: IncomingMessage): Promise<AuthUser | null>
   try {
     const payload = jwt.verify(token, secret) as any;
     if (!payload?.userId || !payload?.tenantId || !payload?.email) return null;
-    const tenant = await TenantModel.findOne({ tenantId: payload.tenantId }).lean();
+    // Only select the plan field for efficiency
+    const tenant = await TenantModel.findOne({ tenantId: payload.tenantId }).select('plan').lean();
     if (!tenant) return null;
     return { userId: payload.userId, tenantId: payload.tenantId, email: payload.email, plan: tenant.plan };
   } catch {
@@ -54,7 +55,8 @@ export async function verifyApiKey(req: IncomingMessage): Promise<AuthUser | nul
   const apiKey = (req.headers['x-api-key'] || '') as string;
   if (!apiKey) return null;
   const hash = hashApiKey(apiKey);
-  const tenant = await TenantModel.findOne({ apiKeyHash: hash }).lean();
+  // Only select the required fields for efficiency
+  const tenant = await TenantModel.findOne({ apiKeyHash: hash }).select('tenantId plan').lean();
   if (!tenant) return null;
   return { userId: tenant.tenantId, tenantId: tenant.tenantId, email: '', plan: tenant.plan };
 }

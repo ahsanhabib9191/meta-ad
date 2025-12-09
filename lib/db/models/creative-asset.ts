@@ -28,8 +28,8 @@ const CreativeUsageRefSchema = new Schema<ICreativeUsageRef>(
 
 const CreativeAssetSchema = new Schema<ICreativeAsset>(
   {
-    assetId: { type: String, required: true, index: true },
-    type: { type: String, required: true, index: true },
+    assetId: { type: String, required: true },
+    type: { type: String, required: true },
     url: { type: String, required: true },
     hash: { type: String },
     metadata: { type: Schema.Types.Mixed },
@@ -38,8 +38,9 @@ const CreativeAssetSchema = new Schema<ICreativeAsset>(
   { timestamps: true }
 );
 
-// Explicit indexes
+// Explicit indexes (removed redundant inline index: true definitions)
 CreativeAssetSchema.index({ assetId: 1 }, { unique: true });
+CreativeAssetSchema.index({ type: 1 });
 CreativeAssetSchema.index({ hash: 1 }, { unique: true, sparse: true });
 CreativeAssetSchema.index({ 'usedBy.entityType': 1, 'usedBy.entityId': 1 });
 

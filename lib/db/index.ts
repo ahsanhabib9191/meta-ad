@@ -1,18 +1,27 @@
 import { connectDB } from './client';
+import { CampaignModel } from './models/campaign';
+import { OptimizationLogModel } from './models/optimization-log';
+import { TenantModel } from './models/Tenant';
+import { MetaConnectionModel } from './models/MetaConnection';
+import { WebsiteAuditModel } from './models/WebsiteAudit';
+import { GeneratedCopyModel } from './models/GeneratedCopy';
+import { AdSetModel } from './models/ad-set';
+import { AdModel } from './models/ad';
+
+// Static array of models for faster initialization (avoids dynamic import overhead)
+const models = [
+  CampaignModel,
+  OptimizationLogModel,
+  TenantModel,
+  MetaConnectionModel,
+  WebsiteAuditModel,
+  GeneratedCopyModel,
+  AdSetModel,
+  AdModel,
+];
 
 export async function initializeDatabase(): Promise<void> {
   await connectDB();
-
-  const models = [
-    (await import('./models/campaign')).CampaignModel,
-    (await import('./models/optimization-log')).OptimizationLogModel,
-    (await import('./models/Tenant')).TenantModel,
-    (await import('./models/MetaConnection')).MetaConnectionModel,
-    (await import('./models/WebsiteAudit')).WebsiteAuditModel,
-    (await import('./models/GeneratedCopy')).GeneratedCopyModel,
-    (await import('./models/ad-set')).AdSetModel,
-    (await import('./models/ad')).AdModel,
-  ];
 
   // Drop existing indexes to avoid duplicate/auto-named conflicts, then sync declared indexes.
   for (const m of models) {
