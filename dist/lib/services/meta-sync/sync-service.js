@@ -15,6 +15,7 @@ const ad_set_1 = require("../../db/models/ad-set");
 const campaign_1 = require("../../db/models/campaign");
 const MetaConnection_1 = require("../../db/models/MetaConnection");
 const logger_1 = __importDefault(require("../../utils/logger"));
+const batch_operations_1 = require("../../utils/batch-operations");
 const graph_client_1 = require("./graph-client");
 const campaignFields = [
     'id',
@@ -151,10 +152,12 @@ async function upsertCampaignFromGraph(payload, accountId) {
         startDate: payload.start_time ? new Date(payload.start_time) : undefined,
         endDate: payload.stop_time ? new Date(payload.stop_time) : undefined,
     };
+    // Use lean() for better performance when we don't need full Mongoose document
     return campaign_1.CampaignModel.findOneAndUpdate({ campaignId: payload.id }, mapped, {
         new: true,
         upsert: true,
         setDefaultsOnInsert: true,
+        lean: true,
     }).exec();
 }
 async function upsertAdSetFromGraph(payload, accountId) {
@@ -175,10 +178,12 @@ async function upsertAdSetFromGraph(payload, accountId) {
             ? Number(payload.delivery_info.daily_spend)
             : undefined,
     };
+    // Use lean() for better performance when we don't need full Mongoose document
     return ad_set_1.AdSetModel.findOneAndUpdate({ adSetId: payload.id }, mapped, {
         new: true,
         upsert: true,
         setDefaultsOnInsert: true,
+        lean: true,
     }).exec();
 }
 async function upsertAdFromGraph(payload, accountId) {
@@ -193,10 +198,12 @@ async function upsertAdFromGraph(payload, accountId) {
         effectiveStatus: normalizeAdEffectiveStatus(payload.effective_status),
         issues: mapIssues(payload.effective_status),
     };
+    // Use lean() for better performance when we don't need full Mongoose document
     return ad_1.AdModel.findOneAndUpdate({ adId: payload.id }, mapped, {
         new: true,
         upsert: true,
         setDefaultsOnInsert: true,
+        lean: true,
     }).exec();
 }
 function mapIssues(effectiveStatus) {
@@ -217,20 +224,88 @@ function mapIssues(effectiveStatus) {
 async function syncMetaConnection(connection) {
     const { connection: safeConnection, accessToken } = await (0, graph_client_1.ensureConnectionAccessToken)(connection);
     const accountId = safeConnection.adAccountId;
-    const campaigns = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/campaigns`, (0, graph_client_1.buildGraphEdgeParams)(campaignFields));
-    const adSets = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/adsets`, (0, graph_client_1.buildGraphEdgeParams)(adSetFields));
-    const ads = await (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/ads`, (0, graph_client_1.buildGraphEdgeParams)(adFields));
-    await Promise.all(campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)));
-    await Promise.all(adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)));
-    await Promise.all(ads.map((payload) => upsertAdFromGraph(payload, accountId)));
+    // Fetch campaigns, adsets, and ads in parallel for better performance
+    const [campaigns, adSets, ads] = await Promise.all([
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/campaigns`, (0, graph_client_1.buildGraphEdgeParams)(campaignFields)),
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/adsets`, (0, graph_client_1.buildGraphEdgeParams)(adSetFields)),
+        (0, graph_client_1.fetchGraphEdges)(accessToken, `${accountId}/ads`, (0, graph_client_1.buildGraphEdgeParams)(adFields)),
+    ]);
+    // Use batch operations for large syncs (more than 50 items)
+    if (campaigns.length > 50 || adSets.length > 50 || ads.length > 50) {
+        const [campaignResult, adSetResult, adResult] = await Promise.all([
+            (0, batch_operations_1.batchUpsert)(campaign_1.CampaignModel, campaigns.map((payload) => ({
+                filter: { campaignId: payload.id },
+                update: {
+                    campaignId: payload.id,
+                    accountId,
+                    name: payload.name,
+                    objective: payload.objective ?? 'OUTCOME_TRAFFIC',
+                    status: normalizeCampaignStatus(payload.status),
+                    budget: payload.daily_budget ? Number(payload.daily_budget) : 0,
+                    startDate: payload.start_time ? new Date(payload.start_time) : undefined,
+                    endDate: payload.stop_time ? new Date(payload.stop_time) : undefined,
+                },
+            }))),
+            (0, batch_operations_1.batchUpsert)(ad_set_1.AdSetModel, adSets.map((payload) => ({
+                filter: { adSetId: payload.id },
+                update: {
+                    adSetId: payload.id,
+                    campaignId: payload.campaign_id || '',
+                    accountId,
+                    name: payload.name,
+                    status: normalizeAdSetStatus(payload.status),
+                    budget: payload.daily_budget ? Number(payload.daily_budget) : 0,
+                    targeting: mapTargeting(payload.targeting),
+                    learningPhaseStatus: normalizeLearningPhase(payload.learning_phase_status),
+                    optimizationGoal: payload.optimization_goal || 'LINK_CLICKS',
+                    startDate: payload.start_time ? new Date(payload.start_time) : undefined,
+                    endDate: payload.end_time ? new Date(payload.end_time) : undefined,
+                    deliveryStatus: payload.delivery_info?.status,
+                    optimizationEventsCount: payload.delivery_info?.daily_spend
+                        ? Number(payload.delivery_info.daily_spend)
+                        : undefined,
+                },
+            }))),
+            (0, batch_operations_1.batchUpsert)(ad_1.AdModel, ads.map((payload) => ({
+                filter: { adId: payload.id },
+                update: {
+                    adId: payload.id,
+                    adSetId: payload.adset_id || '',
+                    campaignId: '',
+                    accountId,
+                    name: payload.name,
+                    status: normalizeAdStatus(payload.status),
+                    creative: mapCreative(payload.creative),
+                    effectiveStatus: normalizeAdEffectiveStatus(payload.effective_status),
+                    issues: mapIssues(payload.effective_status),
+                },
+            }))),
+        ]);
+        logger_1.default.info('Meta connection synced with batch operations', {
+            tenantId: safeConnection.tenantId,
+            adAccountId: accountId,
+            campaignsProcessed: campaignResult.successful,
+            adSetsProcessed: adSetResult.successful,
+            adsProcessed: adResult.successful,
+            errors: campaignResult.errors.length + adSetResult.errors.length + adResult.errors.length,
+        });
+    }
+    else {
+        // For small syncs, use individual upserts (already optimized with lean)
+        await Promise.all([
+            ...campaigns.map((payload) => upsertCampaignFromGraph(payload, accountId)),
+            ...adSets.map((payload) => upsertAdSetFromGraph(payload, accountId)),
+            ...ads.map((payload) => upsertAdFromGraph(payload, accountId)),
+        ]);
+        logger_1.default.info('Meta connection synced', {
+            tenantId: safeConnection.tenantId,
+            adAccountId: accountId,
+            campaignCount: campaigns.length,
+            adSetCount: adSets.length,
+            adCount: ads.length,
+        });
+    }
     await MetaConnection_1.MetaConnectionModel.findByIdAndUpdate(safeConnection._id, { lastSyncedAt: new Date() }).exec();
-    logger_1.default.info('Meta connection synced', {
-        tenantId: safeConnection.tenantId,
-        adAccountId: accountId,
-        campaignCount: campaigns.length,
-        adSetCount: adSets.length,
-        adCount: ads.length,
-    });
     return {
         campaignsSynced: campaigns.length,
         adSetsSynced: adSets.length,

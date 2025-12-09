@@ -15,6 +15,10 @@ export interface RateLimitOptions {
   keyPrefix: string;
 }
 
+// Cache tenant plans to avoid repeated DB queries
+const tenantPlanCache = new Map<string, { plan: string; expires: number }>();
+const TENANT_PLAN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Lua script for atomic rate limiting using sorted sets.
  * Operations: ZADD, ZREMRANGEBYSCORE, ZCARD are combined into one round-trip.
@@ -83,9 +87,34 @@ export async function rateLimitByIp(req: IncomingMessage): Promise<RateLimitResu
 }
 
 export async function rateLimitByTenant(req: IncomingMessage, tenantId: string): Promise<RateLimitResult> {
-  // Use lean() and select only the plan field for efficiency
-  const tenant = await TenantModel.findOne({ tenantId }).select('plan').lean();
-  const plan = tenant?.plan || 'FREE';
+  // Check cache first
+  const now = Date.now();
+  const cached = tenantPlanCache.get(tenantId);
+  let plan: string;
+
+  if (cached && cached.expires > now) {
+    plan = cached.plan;
+  } else {
+    // Use lean() and select only the plan field for efficiency
+    const tenant = await TenantModel.findOne({ tenantId }).select('plan').lean();
+    plan = tenant?.plan || 'FREE';
+    
+    // Cache the result
+    tenantPlanCache.set(tenantId, {
+      plan,
+      expires: now + TENANT_PLAN_CACHE_TTL_MS,
+    });
+    
+    // Clean up old cache entries periodically (every 100 lookups)
+    if (tenantPlanCache.size > 1000 && Math.random() < 0.01) {
+      for (const [key, value] of tenantPlanCache.entries()) {
+        if (value.expires <= now) {
+          tenantPlanCache.delete(key);
+        }
+      }
+    }
+  }
+
   const limiter = tenantLimiters[plan] || tenantLimiters.FREE;
   return limiter(tenantId);
 }

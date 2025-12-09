@@ -34,6 +34,8 @@ const CampaignSchema = new Schema<ICampaign>(
 CampaignSchema.index({ campaignId: 1 }, { unique: true });
 CampaignSchema.index({ accountId: 1, status: 1 });
 CampaignSchema.index({ objective: 1 });
+// Compound index for filtering by account, status, and objective
+CampaignSchema.index({ accountId: 1, status: 1, objective: 1 });
 
 export const CampaignModel: Model<ICampaign> =
   mongoose.models.Campaign || mongoose.model<ICampaign>('Campaign', CampaignSchema);

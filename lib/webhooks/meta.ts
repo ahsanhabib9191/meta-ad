@@ -61,7 +61,12 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
         return;
       }
 
-      const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id }).exec();
+      // Use lean() for better performance when querying connection
+      const connection = await MetaConnectionModel.findOne({ adAccountId: entry.id })
+        .select('tenantId adAccountId accessToken refreshToken tokenExpiresAt status')
+        .lean()
+        .exec();
+        
       if (!connection) {
         logger.warn('Meta webhook received for unknown ad account', { adAccountId: entry.id });
         return;
@@ -71,11 +76,11 @@ export async function handleMetaWebhook(body: MetaWebhookPayload): Promise<void>
       const changeResults = await Promise.allSettled(
         entry.changes.map(async (change) => {
           if (change.field === 'campaign' && change.value?.id) {
-            await syncCampaignFromWebhook(connection, change.value.id);
+            await syncCampaignFromWebhook(connection as any, change.value.id);
           } else if (change.field === 'adset' && change.value?.id) {
-            await syncAdSetFromWebhook(connection, change.value.id);
+            await syncAdSetFromWebhook(connection as any, change.value.id);
           } else if (change.field === 'ad' && change.value?.id) {
-            await syncAdFromWebhook(connection, change.value.id);
+            await syncAdFromWebhook(connection as any, change.value.id);
           }
         })
       );
