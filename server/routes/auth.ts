@@ -31,6 +31,33 @@ router.get('/meta/connect', async (req: Request, res: Response, next: NextFuncti
   }
 });
 
+// GET handler - Facebook redirects here, then we redirect to frontend
+router.get('/meta/callback', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code, state, error, error_description } = req.query;
+    
+    // Build the frontend callback URL with all params
+    const frontendCallbackUrl = new URL('/oauth-callback', `https://${req.get('host')}`);
+    
+    if (error) {
+      frontendCallbackUrl.searchParams.set('error', error as string);
+      if (error_description) {
+        frontendCallbackUrl.searchParams.set('error_description', error_description as string);
+      }
+    } else if (code) {
+      frontendCallbackUrl.searchParams.set('code', code as string);
+      if (state) {
+        frontendCallbackUrl.searchParams.set('state', state as string);
+      }
+    }
+    
+    res.redirect(frontendCallbackUrl.toString());
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST handler - Frontend calls this to exchange code for token
 router.post('/meta/callback', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code, tenantId, adAccountId } = req.body;
