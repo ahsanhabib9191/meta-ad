@@ -27,19 +27,27 @@
     "sync:meta:loop": "ts-node scripts/sync-meta.ts --loop",
     "sync:meta:performance": "ts-node scripts/sync-meta.ts --performance",
     "sync:performance": "ts-node scripts/sync-performance.ts",
-    "sync:performance:loop": "ts-node scripts/sync-performance.ts --loop"
+    "sync:performance:loop": "ts-node scripts/sync-performance.ts --loop",
+    "db:push": "drizzle-kit push",
+    "db:push:force": "drizzle-kit push --force",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/pg": "^8.15.6",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.0",
+    "drizzle-zod": "^0.8.3",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.7.0",
+    "pg": "^8.16.3",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^4.7.1",
     "zod": "^3.25.76"

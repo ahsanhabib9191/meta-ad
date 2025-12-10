@@ -1,5 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AdSetModel, AdModel, OptimizationLogModel, PerformanceSnapshotModel } from '../../lib/db/models';
+import { storage } from '../storage';
+import { getDb } from '../db';
+import { adSets, performanceSnapshots, optimizationLogs } from '../../shared/schema';
+import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
 import { logger } from '../../lib/utils/logger';
 
 const router = Router();
@@ -23,39 +26,33 @@ interface OptimizationRecommendation {
 router.get('/recommendations', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { accountId } = req.query;
+    const db = getDb();
 
-    const filter: Record<string, unknown> = { status: 'ACTIVE' };
-    if (accountId) filter.accountId = accountId;
+    const conditions = [eq(adSets.status, 'ACTIVE')];
+    if (accountId) conditions.push(eq(adSets.accountId, accountId as string));
 
-    const adSets = await AdSetModel.find(filter).lean().exec();
+    const activeAdSets = await db.select().from(adSets).where(and(...conditions));
     
     const recommendations: OptimizationRecommendation[] = [];
 
-    for (const adSet of adSets) {
+    for (const adSet of activeAdSets) {
       const last7Days = new Date();
       last7Days.setDate(last7Days.getDate() - 7);
 
-      const performance = await PerformanceSnapshotModel.aggregate([
-        { 
-          $match: { 
-            entityType: 'AD_SET',
-            entityId: adSet.adSetId,
-            date: { $gte: last7Days }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            spend: { $sum: '$spend' },
-            impressions: { $sum: '$impressions' },
-            clicks: { $sum: '$clicks' },
-            conversions: { $sum: '$conversions' },
-            revenue: { $sum: '$revenue' },
-          }
-        }
-      ]).exec();
+      const [perf] = await db.select({
+        spend: sql<number>`COALESCE(SUM(${performanceSnapshots.spend}), 0)`,
+        impressions: sql<number>`COALESCE(SUM(${performanceSnapshots.impressions}), 0)`,
+        clicks: sql<number>`COALESCE(SUM(${performanceSnapshots.clicks}), 0)`,
+        conversions: sql<number>`COALESCE(SUM(${performanceSnapshots.conversions}), 0)`,
+        revenue: sql<number>`COALESCE(SUM(${performanceSnapshots.revenue}), 0)`,
+      }).from(performanceSnapshots)
+        .where(and(
+          eq(performanceSnapshots.entityType, 'AD_SET'),
+          eq(performanceSnapshots.entityId, adSet.adSetId),
+          gte(performanceSnapshots.date, last7Days)
+        ));
 
-      const metrics = performance[0] || { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 };
+      const metrics = perf || { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 };
 
       const ctr = metrics.impressions > 0 ? (metrics.clicks / metrics.impressions * 100) : 0;
       const cpa = metrics.conversions > 0 ? (metrics.spend / metrics.conversions) : 0;
@@ -135,7 +132,7 @@ router.post('/execute', async (req: Request, res: Response, next: NextFunction) 
     let newValue;
 
     if (entityType === 'AD_SET') {
-      const adSet = await AdSetModel.findOne({ adSetId: entityId }).exec();
+      const adSet = await storage.getAdSet(entityId);
       if (!adSet) {
         return res.status(404).json({ error: 'Ad set not found' });
       }
@@ -143,25 +140,22 @@ router.post('/execute', async (req: Request, res: Response, next: NextFunction) 
       previousValue = { status: adSet.status, budget: adSet.budget };
 
       if (action === 'PAUSE') {
-        adSet.status = 'PAUSED';
+        result = await storage.updateAdSet(entityId, { status: 'PAUSED' });
         newValue = { status: 'PAUSED', budget: adSet.budget };
       } else if (action === 'SCALE') {
-        const newBudget = Math.round(adSet.budget * 1.2);
-        adSet.budget = newBudget;
+        const newBudget = String(Math.round(Number(adSet.budget) * 1.2));
+        result = await storage.updateAdSet(entityId, { budget: newBudget });
         newValue = { status: adSet.status, budget: newBudget };
       } else if (action === 'REDUCE_BUDGET') {
-        const newBudget = Math.round(adSet.budget * 0.8);
-        adSet.budget = newBudget;
+        const newBudget = String(Math.round(Number(adSet.budget) * 0.8));
+        result = await storage.updateAdSet(entityId, { budget: newBudget });
         newValue = { status: adSet.status, budget: newBudget };
       } else if (action === 'ACTIVATE') {
-        adSet.status = 'ACTIVE';
+        result = await storage.updateAdSet(entityId, { status: 'ACTIVE' });
         newValue = { status: 'ACTIVE', budget: adSet.budget };
       }
-
-      await adSet.save();
-      result = adSet;
     } else if (entityType === 'AD') {
-      const ad = await AdModel.findOne({ adId: entityId }).exec();
+      const ad = await storage.getAd(entityId);
       if (!ad) {
         return res.status(404).json({ error: 'Ad not found' });
       }
@@ -169,18 +163,15 @@ router.post('/execute', async (req: Request, res: Response, next: NextFunction) 
       previousValue = { status: ad.status };
 
       if (action === 'PAUSE') {
-        ad.status = 'PAUSED';
+        result = await storage.updateAd(entityId, { status: 'PAUSED' });
         newValue = { status: 'PAUSED' };
       } else if (action === 'ACTIVATE') {
-        ad.status = 'ACTIVE';
+        result = await storage.updateAd(entityId, { status: 'ACTIVE' });
         newValue = { status: 'ACTIVE' };
       }
-
-      await ad.save();
-      result = ad;
     }
 
-    const optimizationLog = await OptimizationLogModel.create({
+    const log = await storage.createOptimizationLog({
       entityType,
       entityId,
       action,
@@ -189,18 +180,20 @@ router.post('/execute', async (req: Request, res: Response, next: NextFunction) 
       newValue: JSON.stringify(newValue),
       performedBy: performedBy || 'system',
       performedAt: new Date(),
+      accountId: null,
+      tenantId: null,
     });
 
     logger.info('Optimization action executed', { 
       entityType, 
       entityId, 
       action,
-      logId: optimizationLog._id 
+      logId: log.id 
     });
 
     res.json({ 
       data: result,
-      log: optimizationLog,
+      log,
       message: `${action} action executed successfully`
     });
   } catch (error) {
@@ -210,28 +203,22 @@ router.post('/execute', async (req: Request, res: Response, next: NextFunction) 
 
 router.get('/logs', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
+    const { entityType, entityId, limit = 50 } = req.query;
 
-    const filter: Record<string, unknown> = {};
-    if (entityType) filter.entityType = entityType;
-    if (entityId) filter.entityId = entityId;
-    if (action) filter.action = action;
-
-    const logs = await OptimizationLogModel.find(filter)
-      .sort({ performedAt: -1 })
-      .skip(Number(offset))
-      .limit(Number(limit))
-      .lean()
-      .exec();
-
-    const total = await OptimizationLogModel.countDocuments(filter).exec();
+    const logs = await storage.getOptimizationLogs(
+      {
+        entityType: entityType as string | undefined,
+        entityId: entityId as string | undefined,
+      },
+      Number(limit)
+    );
 
     res.json({
       data: logs,
       pagination: {
-        total,
+        total: logs.length,
         limit: Number(limit),
-        offset: Number(offset),
+        offset: 0,
       },
     });
   } catch (error) {
@@ -242,17 +229,22 @@ router.get('/logs', async (req: Request, res: Response, next: NextFunction) => {
 router.get('/learning-phase', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { accountId } = req.query;
+    const db = getDb();
 
-    const filter: Record<string, unknown> = { 
-      status: 'ACTIVE',
-      learningPhaseStatus: { $in: ['LEARNING', 'LEARNING_LIMITED'] }
-    };
-    if (accountId) filter.accountId = accountId;
+    const conditions = [
+      eq(adSets.status, 'ACTIVE'),
+      inArray(adSets.learningPhaseStatus, ['LEARNING', 'LEARNING_LIMITED']),
+    ];
+    if (accountId) conditions.push(eq(adSets.accountId, accountId as string));
 
-    const learningAdSets = await AdSetModel.find(filter)
-      .select('adSetId name campaignId learningPhaseStatus optimizationEventsCount createdAt')
-      .lean()
-      .exec();
+    const learningAdSets = await db.select({
+      adSetId: adSets.adSetId,
+      name: adSets.name,
+      campaignId: adSets.campaignId,
+      learningPhaseStatus: adSets.learningPhaseStatus,
+      optimizationEventsCount: adSets.optimizationEventsCount,
+      createdAt: adSets.createdAt,
+    }).from(adSets).where(and(...conditions));
 
     const result = learningAdSets.map(adSet => ({
       ...adSet,

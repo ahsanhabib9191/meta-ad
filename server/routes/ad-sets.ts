@@ -1,32 +1,27 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AdSetModel, AdModel } from '../../lib/db/models';
+import { storage } from '../storage';
 import { logger } from '../../lib/utils/logger';
 
 const router = Router();
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { accountId, campaignId, status, learningPhaseStatus, limit = 50, offset = 0 } = req.query;
-    
-    const filter: Record<string, unknown> = {};
-    if (accountId) filter.accountId = accountId;
-    if (campaignId) filter.campaignId = campaignId;
-    if (status) filter.status = status;
-    if (learningPhaseStatus) filter.learningPhaseStatus = learningPhaseStatus;
+    const { accountId, campaignId, status, limit = 50, offset = 0 } = req.query;
 
-    const adSets = await AdSetModel.find(filter)
-      .sort({ updatedAt: -1 })
-      .skip(Number(offset))
-      .limit(Number(limit))
-      .lean()
-      .exec();
-
-    const total = await AdSetModel.countDocuments(filter).exec();
+    const adSets = await storage.getAdSets(
+      {
+        accountId: accountId as string | undefined,
+        campaignId: campaignId as string | undefined,
+        status: status as string | undefined,
+      },
+      Number(limit),
+      Number(offset)
+    );
 
     res.json({
       data: adSets,
       pagination: {
-        total,
+        total: adSets.length,
         limit: Number(limit),
         offset: Number(offset),
       },
@@ -38,7 +33,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const adSet = await AdSetModel.findOne({ adSetId: req.params.id }).lean().exec();
+    const adSet = await storage.getAdSet(req.params.id);
     
     if (!adSet) {
       return res.status(404).json({ error: 'Ad set not found' });
@@ -54,13 +49,10 @@ router.get('/:id/ads', async (req: Request, res: Response, next: NextFunction) =
   try {
     const { status } = req.query;
     
-    const filter: Record<string, unknown> = { adSetId: req.params.id };
-    if (status) filter.status = status;
-
-    const ads = await AdModel.find(filter)
-      .sort({ updatedAt: -1 })
-      .lean()
-      .exec();
+    const ads = await storage.getAds({
+      adSetId: req.params.id,
+      status: status as string | undefined,
+    });
 
     res.json({ data: ads });
   } catch (error) {
@@ -70,7 +62,7 @@ router.get('/:id/ads', async (req: Request, res: Response, next: NextFunction) =
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const adSet = await AdSetModel.create(req.body);
+    const adSet = await storage.createAdSet(req.body);
     logger.info('Ad set created', { adSetId: adSet.adSetId });
     res.status(201).json({ data: adSet });
   } catch (error) {
@@ -80,7 +72,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
 router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const existingAdSet = await AdSetModel.findOne({ adSetId: req.params.id }).exec();
+    const existingAdSet = await storage.getAdSet(req.params.id);
     
     if (!existingAdSet) {
       return res.status(404).json({ error: 'Ad set not found' });
@@ -93,11 +85,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       });
     }
 
-    const adSet = await AdSetModel.findOneAndUpdate(
-      { adSetId: req.params.id },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    ).lean().exec();
+    const adSet = await storage.updateAdSet(req.params.id, req.body);
 
     logger.info('Ad set updated', { adSetId: req.params.id });
     res.json({ data: adSet });
@@ -108,11 +96,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
 
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const adSet = await AdSetModel.findOneAndUpdate(
-      { adSetId: req.params.id },
-      { $set: { status: 'ARCHIVED' } },
-      { new: true }
-    ).lean().exec();
+    const adSet = await storage.updateAdSet(req.params.id, { status: 'ARCHIVED' });
 
     if (!adSet) {
       return res.status(404).json({ error: 'Ad set not found' });
@@ -127,11 +111,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 
 router.post('/:id/pause', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const adSet = await AdSetModel.findOneAndUpdate(
-      { adSetId: req.params.id },
-      { $set: { status: 'PAUSED' } },
-      { new: true }
-    ).lean().exec();
+    const adSet = await storage.updateAdSet(req.params.id, { status: 'PAUSED' });
 
     if (!adSet) {
       return res.status(404).json({ error: 'Ad set not found' });
@@ -146,11 +126,7 @@ router.post('/:id/pause', async (req: Request, res: Response, next: NextFunction
 
 router.post('/:id/activate', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const adSet = await AdSetModel.findOneAndUpdate(
-      { adSetId: req.params.id },
-      { $set: { status: 'ACTIVE' } },
-      { new: true }
-    ).lean().exec();
+    const adSet = await storage.updateAdSet(req.params.id, { status: 'ACTIVE' });
 
     if (!adSet) {
       return res.status(404).json({ error: 'Ad set not found' });

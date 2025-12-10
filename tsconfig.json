@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-  "module": "CommonJS",
+    "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": ".",
@@ -12,8 +12,12 @@
     "resolveJsonModule": true,
     "types": ["node"],
     "lib": ["ES2022"],
-    "noEmit": false
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["shared/*"]
+    }
   },
-  "include": ["lib/**/*.ts", "scripts/**/*.ts"],
+  "include": ["lib/**/*.ts", "scripts/**/*.ts", "server/**/*.ts", "shared/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

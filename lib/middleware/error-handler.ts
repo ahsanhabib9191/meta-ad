@@ -31,7 +31,7 @@ export interface ErrorResponse {
 
 export function errorHandler(error: Error, req: IncomingMessage, res: ServerResponse) {
   const appErr = error instanceof AppError ? error : AppError.internal('Unexpected error');
-  const requestId = (req.headers['x-request-id'] as string) || '';
+  const requestId = (req.headers?.['x-request-id'] as string) || '';
   const payload: ErrorResponse = {
     status: 'error',
     code: appErr.code,

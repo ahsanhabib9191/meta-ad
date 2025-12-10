@@ -1,5 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { MetaConnectionModel, TenantModel } from '../../lib/db/models';
+import { storage } from '../storage';
+import { getDb } from '../db';
+import { tenants, metaConnections } from '../../shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { generateAuthorizationUrl, exchangeCodeForToken, getUserAdAccounts, getUserInfo } from '../../lib/services/meta-oauth/oauth-service';
 import { logger } from '../../lib/utils/logger';
 import crypto from 'crypto';
@@ -53,10 +56,11 @@ router.post('/meta/callback', async (req: Request, res: Response, next: NextFunc
       ? new Date(Date.now() + tokenResponse.expires_in * 1000)
       : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
-    const connection = await MetaConnectionModel.create({
-      tenantId,
+    const connection = await storage.createMetaConnection({
+      tenantId: Number(tenantId),
       adAccountId: selectedAccount.account_id,
       accessToken: tokenResponse.access_token,
+      refreshToken: null,
       status: 'ACTIVE',
       permissions: [],
       tokenExpiresAt: expiresAt,
@@ -69,7 +73,7 @@ router.post('/meta/callback', async (req: Request, res: Response, next: NextFunc
 
     res.json({
       data: {
-        connectionId: connection._id,
+        connectionId: connection.id,
         adAccountId: selectedAccount.account_id,
         adAccountIdPrefixed: selectedAccount.id,
         adAccountName: selectedAccount.name,
@@ -103,15 +107,24 @@ router.get('/connections', async (req: Request, res: Response, next: NextFunctio
   try {
     const { tenantId } = req.query;
 
-    const filter: Record<string, unknown> = {};
-    if (tenantId) filter.tenantId = tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'tenantId is required' });
+    }
 
-    const connections = await MetaConnectionModel.find(filter)
-      .select('-accessToken -refreshToken')
-      .lean()
-      .exec();
+    const connections = await storage.getMetaConnections(Number(tenantId));
 
-    res.json({ data: connections });
+    const safeConnections = connections.map(c => ({
+      id: c.id,
+      tenantId: c.tenantId,
+      adAccountId: c.adAccountId,
+      status: c.status,
+      permissions: c.permissions,
+      tokenExpiresAt: c.tokenExpiresAt,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }));
+
+    res.json({ data: safeConnections });
   } catch (error) {
     next(error);
   }
@@ -119,18 +132,14 @@ router.get('/connections', async (req: Request, res: Response, next: NextFunctio
 
 router.delete('/connections/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const connection = await MetaConnectionModel.findByIdAndUpdate(
-      req.params.id,
-      { $set: { status: 'REVOKED' } },
-      { new: true }
-    ).select('-accessToken -refreshToken').lean().exec();
+    const connection = await storage.updateMetaConnection(Number(req.params.id), { status: 'REVOKED' });
 
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
 
-    logger.info('Meta connection disconnected', { connectionId: req.params.id });
-    res.json({ data: connection, message: 'Connection disconnected' });
+    logger.info('Meta connection revoked', { connectionId: req.params.id });
+    res.json({ message: 'Connection revoked successfully' });
   } catch (error) {
     next(error);
   }
@@ -138,25 +147,20 @@ router.delete('/connections/:id', async (req: Request, res: Response, next: Next
 
 router.post('/tenant', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, planTier = 'FREE' } = req.body;
+    const { name, email } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'name and email are required' });
     }
 
-    const existingTenant = await TenantModel.findOne({ email }).exec();
+    const existingTenant = await storage.getTenantByEmail(email);
     if (existingTenant) {
-      return res.status(400).json({ error: 'Tenant with this email already exists' });
+      return res.status(409).json({ error: 'Tenant with this email already exists' });
     }
 
-    const tenant = await TenantModel.create({
-      name,
-      email,
-      planTier,
-    });
+    const tenant = await storage.createTenant({ name, email });
 
-    logger.info('Tenant created', { tenantId: tenant._id, email });
-
+    logger.info('Tenant created', { tenantId: tenant.id, email });
     res.status(201).json({ data: tenant });
   } catch (error) {
     next(error);
@@ -165,7 +169,7 @@ router.post('/tenant', async (req: Request, res: Response, next: NextFunction) =
 
 router.get('/tenant/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const tenant = await TenantModel.findById(req.params.id).lean().exec();
+    const tenant = await storage.getTenant(Number(req.params.id));
 
     if (!tenant) {
       return res.status(404).json({ error: 'Tenant not found' });

@@ -106,8 +106,7 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 
 ## Environment Variables
 Set these in `.env` or Replit Secrets:
-- `MONGODB_URI` - MongoDB connection string
-- `REDIS_URL` - Redis connection string
+- `DATABASE_URL` - PostgreSQL connection string (auto-configured by Replit)
 - `ENCRYPTION_KEY` - 32-byte key for AES-256-GCM encryption
 - `NEXTAUTH_SECRET` - JWT authentication secret
 - `META_APP_ID`, `META_APP_SECRET` - Facebook/Meta app credentials
@@ -135,8 +134,14 @@ The optimization engine in `lib/optimization/` provides:
 - Creative fatigue detection
 - Statistical confidence intervals (Wilson score)
 
+## Database
+- **PostgreSQL** with Drizzle ORM (auto-configured by Replit)
+- Schema defined in `shared/schema.ts`
+- Push schema changes: `npm run db:push`
+- View database: `npm run db:studio`
+
 ## Notes
-- Backend requires MongoDB for full functionality (runs without DB for testing)
+- Backend uses PostgreSQL with Drizzle ORM for all data operations
 - Frontend uses Tailwind CSS v4 with @theme directives
 - Dark mode is enabled by default
 - Meta OAuth requires app credentials to be configured

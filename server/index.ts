@@ -9,7 +9,7 @@ import performanceRoutes from './routes/performance';
 import authRoutes from './routes/auth';
 import optimizationRoutes from './routes/optimization';
 import webhookRoutes from './routes/webhooks';
-import { initializeDatabase } from '../lib/db';
+import { pool } from './db';
 import { logger } from '../lib/utils/logger';
 
 const app = express();
@@ -22,8 +22,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const dbStatus = pool ? 'connected' : 'not configured';
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    database: dbStatus
+  });
 });
 
 app.use('/api/auth', authRoutes);
@@ -38,11 +43,11 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
-    if (process.env.MONGODB_URI) {
-      await initializeDatabase();
-      logger.info('Database connected');
+    if (pool) {
+      await pool.query('SELECT 1');
+      logger.info('PostgreSQL database connected');
     } else {
-      logger.warn('MONGODB_URI not set - running without database');
+      logger.warn('DATABASE_URL not set - running without database');
     }
 
     app.listen(PORT, () => {
