@@ -15,15 +15,29 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Build & Validate"
+args = "Frontend"
 
 [[workflows.workflow]]
-name = "Build & Validate"
+name = "Frontend"
 author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build && echo \"✅ TypeScript build successful!\""
+args = "cd client && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 44495
+externalPort = 3000
+
+[deployment]
+deploymentTarget = "static"
+build = ["cd", "client", "&&", "npm", "run", "build"]
+publicDir = "client/dist"
