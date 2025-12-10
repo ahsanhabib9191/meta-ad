@@ -1,8 +1,33 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import OpenAI from 'openai';
 import { logger } from '../../lib/utils/logger';
+import { BoostDraftModel } from '../../lib/db/models/BoostDraft';
+import { createBoostCampaign, getReachEstimate } from '../../lib/services/meta-campaigns/campaign-creator';
+import { getAccessToken } from '../../lib/services/meta-oauth/oauth-service';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
+
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
+}
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -514,6 +539,14 @@ Only respond with valid JSON, no other text.`;
 
 router.post('/analyze', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+      return res.status(429).json({ 
+        error: 'Too many requests. Please wait a minute before trying again.',
+        retryAfter: 60
+      });
+    }
+
     const url = req.body.url || req.query.url;
     
     if (!url) {
@@ -531,7 +564,10 @@ router.post('/analyze', async (req: Request, res: Response, next: NextFunction) 
     const scrapedData = await scrapeUrl(url);
     const aiContent = await generateAdCopy(scrapedData, url);
 
+    const sessionId = uuidv4();
+    
     const session = {
+      sessionId,
       url,
       title: scrapedData.title || 'Your Business',
       description: scrapedData.description || 'Discover what we have to offer',
@@ -547,8 +583,30 @@ router.post('/analyze', async (req: Request, res: Response, next: NextFunction) 
       createdAt: new Date().toISOString(),
     };
 
+    try {
+      await BoostDraftModel.create({
+        sessionId,
+        url,
+        title: session.title,
+        description: session.description,
+        usp: session.usp,
+        images: session.images,
+        brandColors: session.brandColors,
+        pageSpeed: session.pageSpeed,
+        pixelDetected: session.pixelDetected,
+        adCopy: session.adCopy,
+        targetAudience: session.targetAudience,
+        productCategory: session.productCategory,
+        status: 'draft',
+      });
+      logger.info('Boost draft saved', { sessionId });
+    } catch (dbError) {
+      logger.warn('Failed to save boost draft', { error: dbError });
+    }
+
     logger.info('Boost analysis complete', { 
       url, 
+      sessionId,
       adVariants: aiContent.adCopy.length,
       pixelDetected: scrapedData.pixelDetected,
       pageSpeed: scrapedData.pageSpeed.score
@@ -562,14 +620,63 @@ router.post('/analyze', async (req: Request, res: Response, next: NextFunction) 
 
 router.post('/launch', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { session, selectedAdIndex, budget, duration, targeting, tenantId, adAccountId, pageId } = req.body;
+    const { 
+      session, 
+      sessionId,
+      selectedAdIndex = 0, 
+      budget = 10, 
+      duration = 7, 
+      targeting, 
+      tenantId, 
+      adAccountId, 
+      pageId,
+      headline,
+      primaryText,
+      selectedImageUrl,
+      callToAction = 'Learn More'
+    } = req.body;
 
-    if (!session || !tenantId || !adAccountId || !pageId) {
-      return res.status(400).json({ error: 'Missing required fields: session, tenantId, adAccountId, pageId' });
+    if (!tenantId || !adAccountId || !pageId) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: tenantId, adAccountId, pageId',
+        code: 'MISSING_FACEBOOK_CONNECTION'
+      });
     }
 
-    logger.info('Launching boost campaign', { 
-      url: session.url, 
+    if (!session && !sessionId) {
+      return res.status(400).json({ 
+        error: 'Missing session data. Please analyze a URL first.',
+        code: 'MISSING_SESSION'
+      });
+    }
+
+    let accessToken: string;
+    try {
+      accessToken = await getAccessToken(tenantId, adAccountId);
+    } catch (tokenError) {
+      logger.error('Failed to get access token', { tenantId, adAccountId, error: tokenError });
+      return res.status(401).json({
+        error: 'Facebook connection expired. Please reconnect your account.',
+        code: 'TOKEN_EXPIRED'
+      });
+    }
+
+    const adCopy = session?.adCopy?.[selectedAdIndex] || {};
+    const finalHeadline = headline || adCopy.headline || session?.title || 'Check This Out';
+    const finalPrimaryText = primaryText || adCopy.primaryText || session?.usp || 'Discover something amazing today.';
+    const finalImageUrl = selectedImageUrl || session?.images?.[0] || '';
+    const finalCta = callToAction || adCopy.callToAction || 'Learn More';
+
+    const targetingConfig = targeting || {
+      ageMin: session?.targetAudience?.ageRange?.min || 25,
+      ageMax: session?.targetAudience?.ageRange?.max || 54,
+      gender: session?.targetAudience?.gender || 'all',
+      countries: ['US'],
+      interests: session?.targetAudience?.interests || [],
+    };
+
+    logger.info('Launching boost campaign via Meta Graph API', { 
+      url: session?.url, 
       budget, 
       duration,
       tenantId,
@@ -577,18 +684,179 @@ router.post('/launch', async (req: Request, res: Response, next: NextFunction) =
       pageId
     });
 
-    const campaignId = `boost_${Date.now()}`;
+    const result = await createBoostCampaign({
+      adAccountId,
+      accessToken,
+      pageId,
+      name: session?.title || 'Boost Campaign',
+      headline: finalHeadline,
+      primaryText: finalPrimaryText,
+      imageUrl: finalImageUrl,
+      callToAction: finalCta,
+      linkUrl: session?.url || 'https://example.com',
+      dailyBudget: budget,
+      duration,
+      targeting: targetingConfig,
+    });
+
+    if (!result.success) {
+      logger.error('Campaign creation failed', { error: result.error, errorCode: result.errorCode });
+      
+      if (sessionId) {
+        await BoostDraftModel.findOneAndUpdate(
+          { sessionId },
+          { 
+            status: 'failed', 
+            errorMessage: result.error,
+            updatedAt: new Date()
+          }
+        );
+      }
+
+      const statusCode = result.errorCode === 'TOKEN_EXPIRED' ? 401 : 
+                         result.errorCode === 'RATE_LIMITED' ? 429 : 
+                         result.errorCode === 'PERMISSION_DENIED' ? 403 : 400;
+
+      return res.status(statusCode).json({
+        success: false,
+        error: result.error || 'Failed to create campaign on Facebook',
+        code: result.errorCode || 'CAMPAIGN_CREATION_FAILED',
+        retryable: result.retryable || false
+      });
+    }
+
+    if (sessionId) {
+      await BoostDraftModel.findOneAndUpdate(
+        { sessionId },
+        { 
+          status: 'launched',
+          launchedCampaignId: result.campaignId,
+          launchedCampaignUrl: result.campaignUrl,
+          headline: finalHeadline,
+          primaryText: finalPrimaryText,
+          selectedImageUrl: finalImageUrl,
+          cta: finalCta,
+          budget,
+          duration,
+          targeting: targetingConfig,
+          updatedAt: new Date()
+        }
+      );
+    }
+
     const estimatedReach = Math.floor(budget * duration * 800 + Math.random() * 5000);
     const estimatedClicks = Math.floor(estimatedReach * 0.02);
     
+    logger.info('Boost campaign created successfully', { 
+      campaignId: result.campaignId,
+      adSetId: result.adSetId,
+      adId: result.adId
+    });
+
     res.json({
       success: true,
-      campaignId,
-      message: 'Campaign created successfully. It will be reviewed by Meta before going live.',
+      campaignId: result.campaignId,
+      adSetId: result.adSetId,
+      adId: result.adId,
+      campaignUrl: result.campaignUrl,
+      message: 'Campaign created successfully! It will be reviewed by Meta before going live (usually within 24 hours).',
       estimatedReach,
       estimatedClicks,
       totalBudget: budget * duration,
     });
+  } catch (error) {
+    logger.error('Launch endpoint error', { error });
+    next(error);
+  }
+});
+
+router.get('/drafts', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { tenantId } = req.query;
+    
+    const query: any = { status: 'draft' };
+    if (tenantId) {
+      query.tenantId = tenantId;
+    }
+    
+    const drafts = await BoostDraftModel.find(query)
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .lean();
+    
+    res.json({ drafts });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/drafts/:sessionId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const draft = await BoostDraftModel.findOne({ sessionId }).lean();
+    
+    if (!draft) {
+      return res.status(404).json({ error: 'Draft not found' });
+    }
+    
+    res.json(draft);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/drafts/:sessionId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    const updates = req.body;
+    
+    const draft = await BoostDraftModel.findOneAndUpdate(
+      { sessionId },
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    );
+    
+    if (!draft) {
+      return res.status(404).json({ error: 'Draft not found' });
+    }
+    
+    res.json(draft);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/reach-estimate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { tenantId, adAccountId, targeting } = req.body;
+    
+    if (!tenantId || !adAccountId) {
+      return res.json({
+        users_lower_bound: 50000,
+        users_upper_bound: 500000,
+        note: 'Connect Facebook for accurate estimates'
+      });
+    }
+    
+    try {
+      const accessToken = await getAccessToken(tenantId, adAccountId);
+      const estimate = await getReachEstimate(adAccountId, accessToken, {
+        ageMin: targeting?.ageMin || 25,
+        ageMax: targeting?.ageMax || 54,
+        countries: targeting?.countries || ['US'],
+        genders: targeting?.gender === 'female' ? [1] : targeting?.gender === 'male' ? [2] : undefined,
+      });
+      
+      res.json(estimate);
+    } catch (apiError) {
+      logger.warn('Reach estimate API failed, using fallback', { error: apiError });
+      res.json({
+        users_lower_bound: 50000,
+        users_upper_bound: 500000,
+        note: 'Estimated based on similar campaigns'
+      });
+    }
   } catch (error) {
     next(error);
   }

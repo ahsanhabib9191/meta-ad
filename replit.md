@@ -106,8 +106,12 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 - `GET /api/capi/diagnostics` - Get CAPI diagnostics & errors
 
 ### Boost (AI Campaign Creation)
-- `POST /api/boost/analyze` - Analyze URL and generate AI ad copy
-- `POST /api/boost/launch` - Launch campaign with selected ad variant
+- `POST /api/boost/analyze` - Analyze URL and generate AI ad copy (rate limited: 5/min)
+- `POST /api/boost/launch` - Launch campaign via Meta Graph API (real campaign creation)
+- `GET /api/boost/drafts` - List saved draft campaigns
+- `GET /api/boost/drafts/:sessionId` - Get specific draft by session ID
+- `PUT /api/boost/drafts/:sessionId` - Update draft campaign
+- `POST /api/boost/reach-estimate` - Get audience reach estimate from Meta API
 
 ### Health
 - `GET /health` - Health check

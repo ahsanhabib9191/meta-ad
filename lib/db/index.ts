@@ -8,6 +8,7 @@ import { GeneratedCopyModel } from './models/GeneratedCopy';
 import { AdSetModel } from './models/ad-set';
 import { AdModel } from './models/ad';
 import { PerformanceSnapshotModel } from './models/performance-snapshot';
+import { BoostDraftModel } from './models/BoostDraft';
 
 const models = [
   CampaignModel,
@@ -19,6 +20,7 @@ const models = [
   AdSetModel,
   AdModel,
   PerformanceSnapshotModel,
+  BoostDraftModel,
 ];
 
 export async function initializeDatabase(): Promise<void> {
