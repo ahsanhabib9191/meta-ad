@@ -103,11 +103,11 @@ import jwt from 'jsonwebtoken';
 
 const token = jwt.sign(
   { userId, tenantId },
-  process.env.JWT_SECRET!,
+  process.env.NEXTAUTH_SECRET!,
   { expiresIn: '24h', issuer: 'meta-ads-api' }
 );
 
-const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
 ```
 
 ### Rate Limiting Security
@@ -182,7 +182,7 @@ throw new Error('Invalid credentials');
 
 Security-critical environment variables:
 
-- `JWT_SECRET` - Min 32 bytes, randomly generated
+- `NEXTAUTH_SECRET` - Min 32 bytes, randomly generated (JWT signing secret)
 - `ENCRYPTION_KEY` - 256-bit key (64 hex chars)
 - `REDIS_URL` - Include authentication if production
 - `MONGODB_URI` - Include authentication, restrict access
@@ -190,8 +190,8 @@ Security-critical environment variables:
 **Validation on startup:**
 
 ```typescript
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  throw new Error('JWT_SECRET must be at least 32 characters');
+if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
+  throw new Error('NEXTAUTH_SECRET must be at least 32 characters');
 }
 
 if (!process.env.ENCRYPTION_KEY || !/^[a-f0-9]{64}$/i.test(process.env.ENCRYPTION_KEY)) {

@@ -51,7 +51,7 @@ import jwt from 'jsonwebtoken';
 
 const token = jwt.sign(
   { userId, tenantId, role },
-  process.env.JWT_SECRET!,
+  process.env.NEXTAUTH_SECRET!,
   { expiresIn: '24h', issuer: 'meta-ads-api' }
 );
 ```
@@ -156,16 +156,16 @@ npm run test:rate           # Test rate limiting
 
 ❌ **BAD:**
 ```typescript
-const JWT_SECRET = 'mysecret123';
+const NEXTAUTH_SECRET = 'mysecret123';
 const API_KEY = 'abc123xyz';
 ```
 
 ✅ **GOOD:**
 ```typescript
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET is required');
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET is required');
 }
-const JWT_SECRET = process.env.JWT_SECRET;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 ```
 
 ### Issue: Logging Sensitive Data
@@ -223,7 +223,7 @@ I validate these security-critical environment variables:
 ```typescript
 // Required environment variables
 const requiredSecrets = [
-  'JWT_SECRET',        // Min 32 bytes
+  'NEXTAUTH_SECRET',   // Min 32 bytes (JWT signing secret)
   'ENCRYPTION_KEY',    // 64 hex chars (32 bytes)
   'MONGODB_URI',       // With authentication
   'REDIS_URL'          // With authentication in production
@@ -235,9 +235,9 @@ for (const secret of requiredSecrets) {
   }
 }
 
-// Validate JWT_SECRET length
-if (process.env.JWT_SECRET.length < 32) {
-  throw new Error('JWT_SECRET must be at least 32 characters');
+// Validate NEXTAUTH_SECRET length
+if (process.env.NEXTAUTH_SECRET.length < 32) {
+  throw new Error('NEXTAUTH_SECRET must be at least 32 characters');
 }
 
 // Validate ENCRYPTION_KEY format
