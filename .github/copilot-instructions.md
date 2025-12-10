@@ -133,7 +133,7 @@ examples/            # Example API implementations
 Required variables:
 - `MONGODB_URI` – MongoDB connection string
 - `REDIS_URL` – Redis connection string
-- `JWT_SECRET` – JWT signing secret
+- `NEXTAUTH_SECRET` – JWT signing secret
 - `ENCRYPTION_KEY` – 256-bit key for data encryption
 
 ### Testing
