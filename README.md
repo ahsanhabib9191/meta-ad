@@ -50,9 +50,28 @@ npm run docker:down
 - `npm run test:db` – Runs initialization and verifies DB connectivity
 - `npm run test:security` – Validates Meta token encryption at rest and Tenant API key lifecycle
 - `npm run security:scan` – Scans repository for potential secrets and security issues
+- `npm run list:tasks` – Validates implementation status of AdSet and Ad models (35 checks)
 - `npm run docker:up` – Starts MongoDB 6 and Redis 7 via Docker Compose
 - `npm run docker:down` – Stops services
 - `npm run docker:logs` – Shows recent container logs
+
+## Task Status
+
+To view comprehensive implementation status and validation results:
+
+📋 **[View Task Status →](TASK_STATUS.md)**
+
+This document includes:
+- Detailed breakdown of all completed implementation tasks
+- Automated validation results (35/35 checks passing)
+- Usage examples for AdSet and Ad models
+- Data model relationships and indexing strategy
+- Migration notes and performance considerations
+
+Quick validation:
+```bash
+npm run list:tasks
+```
 
 ## Troubleshooting
 
@@ -139,6 +158,44 @@ The guide covers:
 - **Quality scoring** - automated scoring based on Meta best practices
 - **Creative refresh** - detecting fatigue, generating new variants, performance optimization
 - **Best practices** - prompt engineering, model selection, performance tips
+
+## GitHub Copilot Configuration
+
+This repository is fully configured for GitHub Copilot and Copilot coding agents with:
+
+### Environment Setup for Agents
+
+- **`.github/workflows/copilot-setup-steps.yml`** - Pre-configures environment with dependencies and services
+  - Installs npm dependencies automatically
+  - Starts Docker containers (MongoDB, Redis)
+  - Verifies services are healthy before agent work begins
+
+### Path-Specific Instructions
+
+Targeted guidance for different code areas in `.github/instructions/`:
+
+- **`models.instructions.md`** - Database schema patterns, encryption, validation (`lib/db/models/**/*.ts`)
+- **`middleware.instructions.md`** - Express middleware patterns, auth, rate limiting (`lib/middleware/**/*.ts`)
+- **`services.instructions.md`** - Meta API integration, retry logic, caching (`lib/services/**/*.ts`)
+- **`security.instructions.md`** - Security requirements for auth and encryption (security-critical files)
+- **`scripts.instructions.md`** - Test script patterns, cleanup, exit codes (`scripts/**/*.ts`)
+
+### Specialized Agent Personas
+
+Pre-configured expert agents in `.github/agents/`:
+
+- **`database.agents.md`** - Database Specialist for MongoDB, Mongoose models, indexing
+- **`security.agents.md`** - Security Specialist for authentication, encryption, validation
+- **`meta-api.agents.md`** - Meta API Specialist for Graph API, campaigns, optimization
+
+### Using Copilot Effectively
+
+1. **For general development**: Copilot uses repository-wide instructions from `.github/copilot-instructions.md`
+2. **For specific files**: Path-specific instructions automatically apply based on file location
+3. **For specialized tasks**: Invoke agent personas for expert guidance in their domain
+4. **For new agents**: Setup workflow ensures environment is ready before agent starts working
+
+All configuration follows GitHub's latest Copilot best practices for enhanced code generation and agent effectiveness.
 
 ## Notes
 

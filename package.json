@@ -10,6 +10,8 @@
     "test:rate": "ts-node scripts/test-rate-limit.ts",
     "test:models": "ts-node scripts/test-models.ts",
     "test:enums": "ts-node scripts/test-enum-validation.ts",
+    "test:meta": "ts-node scripts/test-meta-connection.ts",
+    "test:oauth": "ts-node scripts/test-oauth.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs",
@@ -18,7 +20,13 @@
     "test:redis": "ts-node scripts/test-redis-client.ts",
     "test:crypto-advanced": "ts-node scripts/test-crypto-advanced.ts",
     "security:scan": "bash scripts/security-scan.sh",
-    "test:all": "npm run test:validators && npm run test:crypto-advanced && npm run test:security && npm run test:models && npm run test:auth && npm run test:rate && npm run test:redis && npm run test:error-handler && npm run test:db"
+    "list:tasks": "ts-node scripts/list-tasks.ts",
+    "test:all": "npm run test:validators && npm run test:crypto-advanced && npm run test:security && npm run test:models && npm run test:auth && npm run test:rate && npm run test:redis && npm run test:error-handler && npm run test:db",
+    "sync:meta": "ts-node scripts/sync-meta.ts",
+    "sync:meta:loop": "ts-node scripts/sync-meta.ts --loop",
+    "sync:meta:performance": "ts-node scripts/sync-meta.ts --performance",
+    "sync:performance": "ts-node scripts/sync-performance.ts",
+    "sync:performance:loop": "ts-node scripts/sync-performance.ts --loop"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

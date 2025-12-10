@@ -32,6 +32,56 @@ The repository includes comprehensive Copilot instructions in `.github/copilot-i
 
 Refer to this file for detailed guidance on how Copilot should assist in this project.
 
+### Advanced Copilot Features
+
+This repository includes advanced Copilot configuration for enhanced productivity:
+
+#### Path-Specific Instructions
+
+Different code areas have targeted guidance in `.github/instructions/`:
+- **Database models** (`lib/db/models/`) - Schema patterns, encryption, indexes
+- **Middleware** (`lib/middleware/`) - Express patterns, auth, rate limiting
+- **Services** (`lib/services/`) - Meta API integration, retry logic, caching
+- **Security files** - Extra security requirements for auth and encryption
+- **Test scripts** (`scripts/`) - Test patterns, cleanup, exit codes
+
+Copilot automatically applies the relevant instructions based on which file you're editing.
+
+#### Specialized Agent Personas
+
+For complex tasks, invoke specialized agents from `.github/agents/`:
+- **Database Specialist** - Expert in MongoDB, Mongoose, schema design
+- **Security Specialist** - Expert in auth, encryption, security best practices
+- **Meta API Specialist** - Expert in Graph API, campaigns, optimization
+
+Agents provide focused expertise and run appropriate tests for their domain.
+
+#### Environment Setup for Copilot Agents
+
+The workflow `.github/workflows/copilot-setup-steps.yml` pre-configures the environment:
+- Installs dependencies with `npm ci`
+- Starts Docker services (MongoDB, Redis)
+- Waits for services to be healthy
+- Ensures agents can start working immediately
+
+This reduces setup time and improves agent effectiveness when working on tasks.
+
+### How to Use Path-Specific Instructions
+
+1. Open a file in the relevant directory (e.g., `lib/db/models/campaign.ts`)
+2. Copilot automatically loads the matching instructions
+3. Suggestions follow the specific patterns for that code area
+4. Instructions are layered with repository-wide guidance
+
+### When to Use Agent Personas
+
+Use specialized agents for:
+- **Database Agent**: Creating new models, optimizing queries, adding indexes
+- **Security Agent**: Implementing authentication, encryption, security reviews
+- **Meta API Agent**: Integrating Graph API, handling webhooks, optimization logic
+
+Agents stay within their boundaries and defer to other specialists when needed.
+
 ## Branch Strategy
 
 - Default branch: `main`

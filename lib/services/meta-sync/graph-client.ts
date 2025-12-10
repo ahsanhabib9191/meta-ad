@@ -1,7 +1,8 @@
 import { MetaConnection, IMetaConnection } from '../../db/models/MetaConnection';
 import logger from '../../utils/logger';
+import { redis } from '../../db/redis';
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v17.0';
+const GRAPH_VERSION = process.env.META_API_VERSION || process.env.META_GRAPH_VERSION || 'v21.0';
 const META_APP_ID = process.env.META_APP_ID;
 const META_APP_SECRET = process.env.META_APP_SECRET;
 const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_VERSION}`;
@@ -13,6 +14,9 @@ if (!META_APP_ID || !META_APP_SECRET) {
 }
 
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // refresh 5 minutes before expiry
+const MAX_RETRIES = 3;
+const RATE_LIMIT_MAX = 180; // Conservative limit (out of 200/hour)
+const RATE_LIMIT_WINDOW = 3600; // 1 hour in seconds
 
 interface GraphError {
   code: number;
@@ -23,8 +27,48 @@ interface GraphError {
 
 interface GraphResponse<T> {
   data: T[];
-  paging?: { next?: string };
+  paging?: { next?: string; cursors?: { after?: string; before?: string } };
   error?: GraphError;
+}
+
+export class MetaAPIError extends Error {
+  constructor(
+    message: string,
+    public code: number,
+    public subcode?: number,
+    public fbtrace_id?: string
+  ) {
+    super(message);
+    this.name = 'MetaAPIError';
+  }
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function checkRateLimit(userId: string): Promise<void> {
+  try {
+    const rateLimitKey = `meta:ratelimit:${userId}`;
+    const count = await redis.incr(rateLimitKey);
+    
+    if (count === 1) {
+      await redis.expire(rateLimitKey, RATE_LIMIT_WINDOW);
+    }
+    
+    if (count > RATE_LIMIT_MAX) {
+      const ttl = await redis.ttl(rateLimitKey);
+      logger.warn('Meta API rate limit reached', { userId, count, ttl });
+      throw new MetaAPIError('Rate limit exceeded', 17);
+    }
+    
+    if (count > RATE_LIMIT_MAX * 0.9) {
+      logger.warn('Approaching Meta API rate limit', { userId, count });
+    }
+  } catch (error) {
+    if (error instanceof MetaAPIError) throw error;
+    logger.error('Rate limit check failed', { error });
+  }
 }
 
 function buildUrl(path: string, params?: Record<string, string>): URL {
@@ -37,24 +81,91 @@ function buildUrl(path: string, params?: Record<string, string>): URL {
   return url;
 }
 
-async function fetchJson<T>(url: string, accessToken: string): Promise<T> {
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  const payload = (await response.json()) as T & { error?: GraphError };
-
-  if (!response.ok || (payload && (payload as any).error)) {
-    const error = (payload as any).error;
-    const message = error
-      ? `${error.code} ${error.message}`
-      : `Meta Graph returned HTTP ${response.status}`;
-    throw new Error(message);
+async function fetchJson<T>(
+  url: string,
+  accessToken: string,
+  userId?: string,
+  retryCount = 0
+): Promise<T> {
+  if (userId) {
+    await checkRateLimit(userId);
   }
 
-  return payload;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const payload = (await response.json()) as T & { error?: GraphError };
+
+    if (!response.ok || (payload && (payload as any).error)) {
+      const error = (payload as any).error;
+      
+      if (error) {
+        const apiError = new MetaAPIError(
+          error.message,
+          error.code,
+          error.error_subcode,
+          error.fbtrace_id
+        );
+        
+        // Handle specific error codes
+        if (error.code === 190) {
+          // Token expired - caller should refresh
+          logger.error('Meta API token expired', { code: error.code, fbtrace_id: error.fbtrace_id });
+          throw apiError;
+        }
+        
+        if (error.code === 17 || error.code === 4 || error.code === 2) {
+          // Rate limit or temporary error - retry with exponential backoff
+          if (retryCount < MAX_RETRIES) {
+            const backoff = Math.pow(2, retryCount) * 1000;
+            logger.warn('Meta API temporary error, retrying', { 
+              code: error.code, 
+              retryCount, 
+              backoffMs: backoff 
+            });
+            await sleep(backoff);
+            return fetchJson<T>(url, accessToken, userId, retryCount + 1);
+          }
+        }
+        
+        if (error.code === 100) {
+          // Invalid parameter - don't retry
+          logger.error('Meta API invalid parameter', { 
+            code: error.code, 
+            message: error.message,
+            url 
+          });
+        }
+        
+        throw apiError;
+      }
+      
+      const message = `Meta Graph returned HTTP ${response.status}`;
+      throw new MetaAPIError(message, response.status);
+    }
+
+    return payload;
+  } catch (error) {
+    if (error instanceof MetaAPIError) throw error;
+    
+    // Network or other errors - retry
+    if (retryCount < MAX_RETRIES) {
+      const backoff = Math.pow(2, retryCount) * 1000;
+      logger.warn('Meta API request failed, retrying', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        retryCount, 
+        backoffMs: backoff 
+      });
+      await sleep(backoff);
+      return fetchJson<T>(url, accessToken, userId, retryCount + 1);
+    }
+    
+    throw error;
+  }
 }
 
 async function refreshAccessToken(connection: IMetaConnection): Promise<IMetaConnection> {
@@ -117,13 +228,14 @@ export async function ensureConnectionAccessToken(
 export async function fetchGraphEdges<T>(
   accessToken: string,
   path: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  userId?: string
 ): Promise<T[]> {
   const results: T[] = [];
   let nextUrl = buildUrl(path, params).toString();
 
   while (nextUrl) {
-    const payload = await fetchJson<GraphResponse<T>>(nextUrl, accessToken);
+    const payload = await fetchJson<GraphResponse<T>>(nextUrl, accessToken, userId);
     if (payload?.data) {
       results.push(...payload.data);
     }
@@ -137,10 +249,60 @@ export async function fetchGraphEdges<T>(
 export async function fetchGraphNode<T>(
   accessToken: string,
   path: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  userId?: string
 ): Promise<T> {
   const url = buildUrl(path, params).toString();
-  return fetchJson<T>(url, accessToken);
+  return fetchJson<T>(url, accessToken, userId);
+}
+
+export async function fetchInsights<T>(
+  accessToken: string,
+  objectId: string,
+  params: Record<string, string>,
+  userId?: string
+): Promise<T[]> {
+  const results: T[] = [];
+  const url = buildUrl(`${objectId}/insights`, params);
+  let nextUrl = url.toString();
+
+  while (nextUrl) {
+    const payload = await fetchJson<GraphResponse<T>>(nextUrl, accessToken, userId);
+    if (payload?.data) {
+      results.push(...payload.data);
+    }
+
+    nextUrl = payload?.paging?.next || '';
+  }
+
+  return results;
+}
+
+export async function batchRequest(
+  accessToken: string,
+  requests: Array<{ method: string; relative_url: string }>,
+  userId?: string
+): Promise<any[]> {
+  const url = buildUrl('', { access_token: accessToken });
+  
+  if (userId) {
+    await checkRateLimit(userId);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ batch: requests }),
+  });
+
+  if (!response.ok) {
+    throw new MetaAPIError(`Batch request failed with status ${response.status}`, response.status);
+  }
+
+  const results = (await response.json()) as any[];
+  return results;
 }
 
 export function buildGraphEdgeParams(fields: string[], limit = 100): Record<string, string> {
