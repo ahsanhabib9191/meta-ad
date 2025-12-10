@@ -7,7 +7,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { connectToDatabase } from '../../../lib/db/client';
+import { connectDB } from '../../../lib/db/client';
 import { getAccessToken } from '../../../lib/services/meta-oauth/oauth-service';
 import { z } from 'zod';
 import logger from '../../../lib/utils/logger';
@@ -49,7 +49,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    await connectToDatabase();
+    await connectDB();
 
     const tenantId = req.query.tenant as string || req.headers['x-tenant-id'] as string;
     const adAccountId = req.query.adAccountId as string;

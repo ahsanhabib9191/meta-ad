@@ -15,7 +15,7 @@ import {
   saveMetaConnection,
   debugToken,
 } from '../../../../lib/services/meta-oauth/oauth-service';
-import { connectToDatabase } from '../../../../lib/db/client';
+import { connectDB } from '../../../../lib/db/client';
 import logger from '../../../../lib/utils/logger';
 
 export default async function handler(
@@ -28,7 +28,7 @@ export default async function handler(
 
   try {
     // Connect to database
-    await connectToDatabase();
+    await connectDB();
 
     // Get OAuth parameters from query
     const { code, state, error, error_description } = req.query;

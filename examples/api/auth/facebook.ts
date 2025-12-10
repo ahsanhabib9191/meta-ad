@@ -37,7 +37,7 @@ export default async function handler(
     res.setHeader('Set-Cookie', `oauth_tenant=${tenantId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
 
     // Generate authorization URL with all required scopes
-    const authUrl = generateAuthorizationUrl(state, META_ALL_SCOPES);
+    const authUrl = generateAuthorizationUrl(state, [...META_ALL_SCOPES]);
 
     // Redirect user to Facebook authorization page
     res.redirect(authUrl);

@@ -8,7 +8,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { connectToDatabase } from '../../../lib/db/client';
+import { connectDB } from '../../../lib/db/client';
 import { getAccessToken } from '../../../lib/services/meta-oauth/oauth-service';
 import { fetchGraphEdges, fetchGraphNode } from '../../../lib/services/meta-sync/graph-client';
 import { CampaignModel } from '../../../lib/db/models/campaign';
@@ -45,7 +45,7 @@ export default async function handler(
 ) {
   try {
     // Connect to database
-    await connectToDatabase();
+    await connectDB();
 
     // Get tenant ID from session/auth
     // In production, get from authenticated session
