@@ -1,4 +1,4 @@
-import { connectDB } from './client';
+import { connectDB, disconnectDB } from './client';
 import { CampaignModel } from './models/campaign';
 import { OptimizationLogModel } from './models/optimization-log';
 import { TenantModel } from './models/Tenant';
@@ -38,3 +38,6 @@ export async function initializeDatabase(): Promise<void> {
 
   console.log('✅ Database initialized with all required models and indexes');
 }
+
+// Re-export connection functions
+export { connectDB, disconnectDB };

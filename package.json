@@ -21,7 +21,12 @@
     "test:crypto-advanced": "ts-node scripts/test-crypto-advanced.ts",
     "security:scan": "bash scripts/security-scan.sh",
     "list:tasks": "ts-node scripts/list-tasks.ts",
-    "test:all": "npm run test:validators && npm run test:crypto-advanced && npm run test:security && npm run test:models && npm run test:auth && npm run test:rate && npm run test:redis && npm run test:error-handler && npm run test:db"
+    "test:all": "npm run test:validators && npm run test:crypto-advanced && npm run test:security && npm run test:models && npm run test:auth && npm run test:rate && npm run test:redis && npm run test:error-handler && npm run test:db",
+    "sync:meta": "ts-node scripts/sync-meta.ts",
+    "sync:meta:loop": "ts-node scripts/sync-meta.ts --loop",
+    "sync:meta:performance": "ts-node scripts/sync-meta.ts --performance",
+    "sync:performance": "ts-node scripts/sync-performance.ts",
+    "sync:performance:loop": "ts-node scripts/sync-performance.ts --loop"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
