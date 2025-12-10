@@ -268,31 +268,52 @@ router.get('/event-match-quality', async (req: Request, res: Response, next: Nex
       return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
 
-    const emqResponse = await metaApiRequest(
-      `/${pixelId}?fields=event_match_quality`,
+    const pixelResponse = await metaApiRequest(
+      `/${pixelId}?fields=id,name,enable_automatic_matching,automatic_matching_fields`,
       connection.accessToken
     );
 
-    if (emqResponse.error) {
-      return res.status(400).json({ error: emqResponse.error.message });
+    if (pixelResponse.error) {
+      return res.status(400).json({ error: pixelResponse.error.message });
     }
 
-    let eventMatchQuality = emqResponse.event_match_quality || null;
+    const automaticMatchingEnabled = pixelResponse.enable_automatic_matching || false;
+    const matchingFields = pixelResponse.automatic_matching_fields || [];
+    
+    let estimatedScore = 3;
+    if (automaticMatchingEnabled) estimatedScore += 2;
+    if (matchingFields.includes('em')) estimatedScore += 1;
+    if (matchingFields.includes('ph')) estimatedScore += 1;
+    if (matchingFields.includes('fn') && matchingFields.includes('ln')) estimatedScore += 1;
+    if (matchingFields.includes('external_id')) estimatedScore += 1;
+    if (matchingFields.includes('country')) estimatedScore += 1;
+    estimatedScore = Math.min(estimatedScore, 10);
 
     const recommendations = [];
     
-    if (!eventMatchQuality || eventMatchQuality < 6) {
-      recommendations.push('Add more customer information parameters (email, phone, name) to improve match quality');
-      recommendations.push('Ensure Advanced Matching is enabled on your pixel');
-      recommendations.push('Hash PII data using SHA-256 (email, phone, name) - do NOT hash country codes');
-      recommendations.push('Include fbc and fbp cookies from the browser');
+    if (!automaticMatchingEnabled) {
+      recommendations.push('Enable Advanced Matching on your pixel to improve match quality');
     }
+    if (!matchingFields.includes('em')) {
+      recommendations.push('Include email (em) - hash with SHA-256 before sending');
+    }
+    if (!matchingFields.includes('ph')) {
+      recommendations.push('Include phone number (ph) - hash with SHA-256 before sending');
+    }
+    if (!matchingFields.includes('external_id')) {
+      recommendations.push('Include external_id to match users across devices');
+    }
+    recommendations.push('Always include fbc and fbp cookies from the browser');
+    recommendations.push('Include client_ip_address and client_user_agent for better matching');
 
     res.json({
       data: {
         pixelId,
-        eventMatchQuality: eventMatchQuality || 'Not available',
-        eventMatchQualityScore: typeof eventMatchQuality === 'number' ? `${eventMatchQuality}/10` : 'N/A',
+        pixelName: pixelResponse.name,
+        automaticMatchingEnabled,
+        automaticMatchingFields: matchingFields,
+        estimatedMatchQuality: `${estimatedScore}/10`,
+        note: 'Event Match Quality score is available in Events Manager after sending events',
         recommendations,
         parameters: {
           required: ['event_name', 'event_time', 'user_data', 'action_source'],
