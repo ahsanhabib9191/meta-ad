@@ -112,6 +112,9 @@ async function run() {
 
   // Test disconnection
   await disconnectRedis();
+  // Wait a moment for disconnect to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+  // After quit(), status should not be 'ready' (might be 'end', 'close', or other states)
   if (redis.status === 'ready') throw new Error('Redis still connected after disconnect');
 
   // Reconnect for other tests
