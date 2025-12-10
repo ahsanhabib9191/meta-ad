@@ -6,6 +6,10 @@ dotenv.config();
 
 async function run() {
   await redis.connect();
+  
+  // Clear any existing test data before running tests
+  await redis.flushdb();
+  
   const limiter = createRateLimiter({ windowMs: 1000, maxRequests: 3, keyPrefix: 'test' });
 
   const key = 'ip:127.0.0.1';

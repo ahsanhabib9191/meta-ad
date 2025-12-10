@@ -25,9 +25,10 @@ local key = KEYS[1]
 local now = tonumber(ARGV[1])
 local windowStart = tonumber(ARGV[2])
 local ttlMs = tonumber(ARGV[3])
+local uniqueMember = ARGV[4]
 
--- Add current request timestamp
-redis.call('ZADD', key, now, now)
+-- Add current request timestamp with unique member
+redis.call('ZADD', key, now, uniqueMember)
 -- Remove expired entries outside the window
 redis.call('ZREMRANGEBYSCORE', key, 0, windowStart)
 -- Set TTL on the key to auto-cleanup (ensure minimum of 1ms to prevent immediate expiration)
@@ -46,6 +47,9 @@ export function createRateLimiter(options: RateLimitOptions) {
     const windowStart = now - windowMs;
     const zkey = `${keyPrefix}:${key}`;
     
+    // Generate unique member for this request (timestamp + random to avoid collisions)
+    const uniqueMember = `${now}-${Math.random().toString(36).slice(2)}`;
+    
     // Execute atomic rate limit check using Lua script (single round-trip)
     const count = await redis.eval(
       RATE_LIMIT_LUA_SCRIPT,
@@ -53,7 +57,8 @@ export function createRateLimiter(options: RateLimitOptions) {
       zkey,
       now.toString(),
       windowStart.toString(),
-      windowMs.toString()
+      windowMs.toString(),
+      uniqueMember
     ) as number;
     
     const allowed = count <= maxRequests;
