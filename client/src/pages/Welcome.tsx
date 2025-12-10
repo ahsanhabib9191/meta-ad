@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 
 const features = [
   {
@@ -18,7 +19,39 @@ const features = [
   },
 ]
 
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : `https://${window.location.hostname.replace('5000', '3000')}`;
+
 export default function Welcome() {
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleConnectFacebook = async () => {
+    setIsConnecting(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/meta/connect?tenantId=1`)
+      const data = await response.json()
+      
+      if (data.error) {
+        setError(data.error)
+        return
+      }
+      
+      if (data.authUrl) {
+        localStorage.setItem('oauth_state', data.state)
+        window.location.href = data.authUrl
+      }
+    } catch (err) {
+      setError('Failed to connect. Please try again.')
+      console.error('OAuth error:', err)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark">
       <div className="flex h-full grow flex-col">
@@ -69,8 +102,30 @@ export default function Welcome() {
                       </div>
                     </div>
 
-                    <button className="flex min-w-[84px] w-full max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-background-dark text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
-                      <span className="truncate">Connect Facebook Account</span>
+                    {error && (
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                        {error}
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={handleConnectFacebook}
+                      disabled={isConnecting}
+                      className="flex min-w-[84px] w-full max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-background-dark text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2"
+                    >
+                      {isConnecting ? (
+                        <>
+                          <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                          <span>Connecting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                          </svg>
+                          <span>Connect Facebook Account</span>
+                        </>
+                      )}
                     </button>
 
                     <p className="text-sm font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Trusted by 1000+ businesses</p>
