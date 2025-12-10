@@ -58,11 +58,12 @@ externalPort = 80
 localPort = 5001
 externalPort = 3001
 
-[[ports]]
-localPort = 33623
-externalPort = 3002
-
 [deployment]
 deploymentTarget = "static"
 build = ["cd", "client", "&&", "npm", "run", "build"]
 publicDir = "client/dist"
+
+[userenv]
+
+[userenv.shared]
+META_REDIRECT_URI = "https://1e95b693-ed56-43c4-b915-ae28f291af9b-00-k2gcuim4jew.sisko.replit.dev/api/auth/meta/callback"
