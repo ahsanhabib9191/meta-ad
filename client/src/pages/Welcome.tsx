@@ -41,7 +41,39 @@ export default function Welcome() {
       
       if (data.authUrl) {
         localStorage.setItem('oauth_state', data.state)
-        window.location.href = data.authUrl
+        
+        // Open Facebook OAuth in a popup window (required because Facebook blocks iframes)
+        const width = 600
+        const height = 700
+        const left = window.screenX + (window.outerWidth - width) / 2
+        const top = window.screenY + (window.outerHeight - height) / 2
+        
+        const popup = window.open(
+          data.authUrl,
+          'FacebookAuth',
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        )
+        
+        // Listen for OAuth completion message from callback page
+        const handleMessage = (event: MessageEvent) => {
+          if (event.data?.type === 'oauth_complete') {
+            window.removeEventListener('message', handleMessage)
+            if (event.data.success) {
+              window.location.href = '/'
+            } else {
+              setError(event.data.error || 'OAuth failed')
+            }
+          }
+        }
+        window.addEventListener('message', handleMessage)
+        
+        // Fallback: check if popup was closed
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed)
+            window.removeEventListener('message', handleMessage)
+          }
+        }, 1000)
       }
     } catch (err) {
       setError('Failed to connect. Please try again.')

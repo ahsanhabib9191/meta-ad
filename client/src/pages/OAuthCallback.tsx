@@ -1,16 +1,26 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000' 
-  : `https://${window.location.hostname.replace('5000', '3000')}`;
+import { useSearchParams } from 'react-router-dom'
 
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [message, setMessage] = useState('Connecting your Facebook account...')
   const [accounts, setAccounts] = useState<any[]>([])
+  const isPopup = window.opener !== null
+
+  const notifyOpener = (success: boolean, error?: string) => {
+    if (window.opener) {
+      window.opener.postMessage({ type: 'oauth_complete', success, error }, '*')
+    }
+  }
+
+  const closeOrRedirect = () => {
+    if (isPopup) {
+      window.close()
+    } else {
+      window.location.href = '/'
+    }
+  }
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -22,12 +32,14 @@ export default function OAuthCallback() {
       if (error) {
         setStatus('error')
         setMessage(errorDescription || 'Authorization was denied')
+        notifyOpener(false, errorDescription || 'Authorization was denied')
         return
       }
 
       if (!code) {
         setStatus('error')
         setMessage('No authorization code received')
+        notifyOpener(false, 'No authorization code received')
         return
       }
 
@@ -37,7 +49,7 @@ export default function OAuthCallback() {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/meta/callback`, {
+        const response = await fetch('/api/auth/meta/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -51,6 +63,7 @@ export default function OAuthCallback() {
         if (data.error) {
           setStatus('error')
           setMessage(data.error)
+          notifyOpener(false, data.error)
           return
         }
 
@@ -60,19 +73,22 @@ export default function OAuthCallback() {
         
         localStorage.removeItem('oauth_state')
         localStorage.setItem('connected_account', JSON.stringify(data.data))
+        
+        notifyOpener(true)
 
         setTimeout(() => {
-          navigate('/')
+          closeOrRedirect()
         }, 3000)
       } catch (err) {
         setStatus('error')
         setMessage('Failed to complete connection. Please try again.')
         console.error('Callback error:', err)
+        notifyOpener(false, 'Failed to complete connection')
       }
     }
 
     handleCallback()
-  }, [searchParams, navigate])
+  }, [searchParams])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-4">
@@ -141,10 +157,16 @@ export default function OAuthCallback() {
               {message}
             </p>
             <button
-              onClick={() => navigate('/welcome')}
+              onClick={() => {
+                if (isPopup) {
+                  window.close()
+                } else {
+                  window.location.href = '/welcome'
+                }
+              }}
               className="px-6 py-2 bg-primary text-background-dark rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
-              Try Again
+              {isPopup ? 'Close' : 'Try Again'}
             </button>
           </>
         )}
