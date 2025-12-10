@@ -685,3 +685,163 @@ export async function syncAdFromWebhook(connection: IMetaConnection, adId: strin
     throw error;
   }
 }
+
+/**
+ * Sync performance data for a single campaign
+ */
+export async function syncPerformanceDataForCampaign(
+  connection: IMetaConnection,
+  campaignId: string,
+  datePreset: string = 'yesterday'
+) {
+  try {
+    const { accessToken } = await ensureConnectionAccessToken(connection);
+    const userId = connection.tenantId;
+
+    const insightsFields = [
+      'impressions',
+      'clicks',
+      'spend',
+      'actions',
+      'action_values',
+      'date_start',
+      'date_stop',
+    ];
+
+    const insights = await fetchInsights<any>(
+      accessToken,
+      campaignId,
+      {
+        fields: insightsFields.join(','),
+        date_preset: datePreset,
+        time_increment: '1',
+      },
+      userId
+    );
+
+    if (!insights || insights.length === 0) {
+      logger.warn('No insights data for campaign', { campaignId, datePreset });
+      return null;
+    }
+
+    // Use the most recent insight
+    const insight = insights[0];
+    return await upsertPerformanceSnapshot(
+      'CAMPAIGN',
+      campaignId,
+      insight
+    );
+  } catch (error) {
+    logger.error('Failed to sync performance data for campaign', {
+      campaignId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Sync performance data for a single ad set
+ */
+export async function syncPerformanceDataForAdSet(
+  connection: IMetaConnection,
+  adSetId: string,
+  datePreset: string = 'yesterday'
+) {
+  try {
+    const { accessToken } = await ensureConnectionAccessToken(connection);
+    const userId = connection.tenantId;
+
+    const insightsFields = [
+      'impressions',
+      'clicks',
+      'spend',
+      'actions',
+      'action_values',
+      'date_start',
+      'date_stop',
+    ];
+
+    const insights = await fetchInsights<any>(
+      accessToken,
+      adSetId,
+      {
+        fields: insightsFields.join(','),
+        date_preset: datePreset,
+        time_increment: '1',
+      },
+      userId
+    );
+
+    if (!insights || insights.length === 0) {
+      logger.warn('No insights data for ad set', { adSetId, datePreset });
+      return null;
+    }
+
+    const insight = insights[0];
+    return await upsertPerformanceSnapshot(
+      'AD_SET',
+      adSetId,
+      insight
+    );
+  } catch (error) {
+    logger.error('Failed to sync performance data for ad set', {
+      adSetId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Sync performance data for a single ad
+ */
+export async function syncPerformanceDataForAd(
+  connection: IMetaConnection,
+  adId: string,
+  datePreset: string = 'yesterday'
+) {
+  try {
+    const { accessToken } = await ensureConnectionAccessToken(connection);
+    const userId = connection.tenantId;
+
+    const insightsFields = [
+      'impressions',
+      'clicks',
+      'spend',
+      'actions',
+      'action_values',
+      'date_start',
+      'date_stop',
+    ];
+
+    const insights = await fetchInsights<any>(
+      accessToken,
+      adId,
+      {
+        fields: insightsFields.join(','),
+        date_preset: datePreset,
+        time_increment: '1',
+      },
+      userId
+    );
+
+    if (!insights || insights.length === 0) {
+      logger.warn('No insights data for ad', { adId, datePreset });
+      return null;
+    }
+
+    const insight = insights[0];
+    return await upsertPerformanceSnapshot(
+      'AD',
+      adId,
+      insight
+    );
+  } catch (error) {
+    logger.error('Failed to sync performance data for ad', {
+      adId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
