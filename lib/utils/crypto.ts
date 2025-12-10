@@ -6,17 +6,22 @@ const ALGO = 'aes-256-gcm';
 
 // Cache the encryption key to avoid parsing on every encrypt/decrypt call
 let cachedKey: Buffer | null = null;
+let cachedKeyValue: string | null = null;
 
 function getKey(): Buffer {
-  if (cachedKey) {
+  const keyHex = process.env.ENCRYPTION_KEY || '';
+  
+  // Re-validate if environment variable changed (for testing)
+  if (cachedKey && cachedKeyValue === keyHex) {
     return cachedKey;
   }
   
-  const keyHex = process.env.ENCRYPTION_KEY || '';
   if (!keyHex || keyHex.length !== 64) {
     throw new Error('ENCRYPTION_KEY must be a 32-byte hex string (64 hex chars).');
   }
+  
   cachedKey = Buffer.from(keyHex, 'hex');
+  cachedKeyValue = keyHex;
   return cachedKey;
 }
 
