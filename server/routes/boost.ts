@@ -31,11 +31,78 @@ interface AdVariant {
 }
 
 const HOOK_LIBRARY = [
-  { type: 'curiosity', hooks: ["Wait until you see this...", "Most people don't know this, but...", "Here's what nobody tells you about..."] },
-  { type: 'urgency', hooks: ["Don't miss out on...", "Last chance to...", "Limited time only:"] },
-  { type: 'social_proof', hooks: ["Join 10,000+ happy customers", "See why everyone's talking about...", "The #1 choice for..."] },
-  { type: 'problem', hooks: ["Tired of...?", "Still struggling with...?", "Finally, a solution for..."] },
-  { type: 'benefit', hooks: ["Imagine if you could...", "What if you never had to...again?", "Get ready to..."] },
+  { type: 'curiosity', hooks: [
+    "Wait until you see this...",
+    "Most people don't know this, but...",
+    "Here's what nobody tells you about...",
+    "I never expected this to work, but...",
+    "The secret that changed everything...",
+    "You won't believe what happened when...",
+    "This one thing makes all the difference...",
+    "What they don't want you to know...",
+    "The truth about...",
+    "I was skeptical too, until..."
+  ]},
+  { type: 'urgency', hooks: [
+    "Don't miss out on...",
+    "Last chance to...",
+    "Limited time only:",
+    "Ending soon:",
+    "Only X left in stock...",
+    "Sale ends midnight!",
+    "Today only:",
+    "Flash sale alert!",
+    "While supplies last...",
+    "Final hours to save..."
+  ]},
+  { type: 'social_proof', hooks: [
+    "Join 10,000+ happy customers",
+    "See why everyone's talking about...",
+    "The #1 choice for...",
+    "As featured in...",
+    "Trusted by leading brands",
+    "5-star rated by customers",
+    "Award-winning quality",
+    "Customer favorite:",
+    "Best seller alert!",
+    "Recommended by experts"
+  ]},
+  { type: 'problem', hooks: [
+    "Tired of...?",
+    "Still struggling with...?",
+    "Finally, a solution for...",
+    "Fed up with...?",
+    "Stop wasting time on...",
+    "The problem with... is...",
+    "Frustrated by...?",
+    "Why does... have to be so hard?",
+    "There's a better way to...",
+    "Say goodbye to..."
+  ]},
+  { type: 'benefit', hooks: [
+    "Imagine if you could...",
+    "What if you never had to...again?",
+    "Get ready to...",
+    "Transform your... in days",
+    "Unlock the power of...",
+    "Discover how to...",
+    "The easiest way to...",
+    "Finally achieve...",
+    "Start your journey to...",
+    "Experience the difference of..."
+  ]},
+  { type: 'question', hooks: [
+    "Ready to transform your...?",
+    "Want to know the secret to...?",
+    "Looking for...?",
+    "Need help with...?",
+    "Struggling to find...?",
+    "What if... was easier?",
+    "Have you tried...?",
+    "Did you know...?",
+    "Why settle for less when...?",
+    "What's stopping you from...?"
+  ]},
 ];
 
 function isAllowedUrl(urlString: string): boolean {
@@ -229,6 +296,109 @@ async function scrapeUrl(url: string): Promise<ScrapedData> {
   }
 }
 
+const CATEGORY_INTEREST_MAP: Record<string, { interests: string[], demographics: string[], ageRange: { min: number, max: number }, gender: string }> = {
+  'ecommerce': {
+    interests: ['Online Shopping', 'E-commerce', 'Retail Therapy', 'Shopping Online', 'Deal Hunters'],
+    demographics: ['Urban professionals', 'Young adults'],
+    ageRange: { min: 25, max: 54 },
+    gender: 'all'
+  },
+  'beauty': {
+    interests: ['Beauty', 'Skincare', 'Cosmetics', 'Self-care', 'Wellness', 'Makeup'],
+    demographics: ['Beauty enthusiasts', 'Health conscious'],
+    ageRange: { min: 18, max: 45 },
+    gender: 'female'
+  },
+  'fashion': {
+    interests: ['Fashion', 'Clothing', 'Style', 'Apparel', 'Accessories', 'Trends'],
+    demographics: ['Fashion forward', 'Trendsetters'],
+    ageRange: { min: 18, max: 40 },
+    gender: 'all'
+  },
+  'technology': {
+    interests: ['Technology', 'Gadgets', 'Electronics', 'Software', 'Innovation', 'Tech News'],
+    demographics: ['Early adopters', 'Tech professionals'],
+    ageRange: { min: 22, max: 55 },
+    gender: 'all'
+  },
+  'fitness': {
+    interests: ['Fitness', 'Gym', 'Workout', 'Health', 'Nutrition', 'Sports'],
+    demographics: ['Fitness enthusiasts', 'Active lifestyle'],
+    ageRange: { min: 20, max: 50 },
+    gender: 'all'
+  },
+  'food': {
+    interests: ['Food', 'Cooking', 'Recipes', 'Restaurants', 'Gourmet', 'Healthy Eating'],
+    demographics: ['Foodies', 'Home cooks'],
+    ageRange: { min: 25, max: 55 },
+    gender: 'all'
+  },
+  'education': {
+    interests: ['Education', 'Online Courses', 'Learning', 'Skills Development', 'Career Growth'],
+    demographics: ['Students', 'Professionals'],
+    ageRange: { min: 18, max: 45 },
+    gender: 'all'
+  },
+  'finance': {
+    interests: ['Finance', 'Investing', 'Savings', 'Money Management', 'Cryptocurrency'],
+    demographics: ['Investors', 'Professionals'],
+    ageRange: { min: 28, max: 60 },
+    gender: 'all'
+  },
+  'travel': {
+    interests: ['Travel', 'Vacation', 'Adventure', 'Tourism', 'Hotels', 'Flights'],
+    demographics: ['Travelers', 'Adventure seekers'],
+    ageRange: { min: 25, max: 55 },
+    gender: 'all'
+  },
+  'home': {
+    interests: ['Home Decor', 'Interior Design', 'Furniture', 'DIY', 'Home Improvement'],
+    demographics: ['Homeowners', 'Renters'],
+    ageRange: { min: 28, max: 55 },
+    gender: 'all'
+  },
+  'default': {
+    interests: ['Online Shopping', 'Lifestyle', 'Social Media', 'Entertainment', 'News'],
+    demographics: ['General audience'],
+    ageRange: { min: 25, max: 54 },
+    gender: 'all'
+  }
+};
+
+function detectProductCategory(text: string, title: string): string {
+  const content = `${text} ${title}`.toLowerCase();
+  
+  const categoryKeywords: Record<string, string[]> = {
+    'beauty': ['beauty', 'skincare', 'cosmetic', 'makeup', 'serum', 'cream', 'facial', 'hair care'],
+    'fashion': ['fashion', 'clothing', 'apparel', 'dress', 'shoes', 'accessories', 'jewelry', 'wear'],
+    'technology': ['tech', 'software', 'app', 'digital', 'computer', 'phone', 'gadget', 'saas'],
+    'fitness': ['fitness', 'gym', 'workout', 'exercise', 'training', 'yoga', 'sport', 'health'],
+    'food': ['food', 'recipe', 'restaurant', 'cooking', 'meal', 'diet', 'nutrition', 'organic'],
+    'education': ['course', 'learn', 'training', 'education', 'tutorial', 'class', 'skill', 'certification'],
+    'finance': ['finance', 'invest', 'money', 'bank', 'crypto', 'trading', 'loan', 'insurance'],
+    'travel': ['travel', 'vacation', 'hotel', 'flight', 'tour', 'booking', 'destination', 'trip'],
+    'home': ['home', 'furniture', 'decor', 'interior', 'kitchen', 'bedroom', 'living room', 'garden'],
+    'ecommerce': ['shop', 'store', 'buy', 'order', 'cart', 'checkout', 'product', 'sale']
+  };
+  
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    const matchCount = keywords.filter(keyword => content.includes(keyword)).length;
+    if (matchCount >= 2) {
+      return category;
+    }
+  }
+  
+  return 'default';
+}
+
+function calculateEstimatedReach(budget: number, duration: number, audienceSize: string): { reach: number, clicks: number } {
+  const baseReach = budget * duration * 800;
+  const multiplier = audienceSize === 'broad' ? 1.5 : audienceSize === 'narrow' ? 0.7 : 1;
+  const reach = Math.floor(baseReach * multiplier + Math.random() * 5000);
+  const clicks = Math.floor(reach * 0.02);
+  return { reach, clicks };
+}
+
 function selectHooks(category: string): string[] {
   const relevantHooks: string[] = [];
   for (const hookSet of HOOK_LIBRARY) {
@@ -238,7 +408,9 @@ function selectHooks(category: string): string[] {
 }
 
 async function generateAdCopy(scrapedData: ScrapedData, url: string): Promise<any> {
-  const hooks = selectHooks('general');
+  const detectedCategory = detectProductCategory(scrapedData.text, scrapedData.title);
+  const categoryTargeting = CATEGORY_INTEREST_MAP[detectedCategory] || CATEGORY_INTEREST_MAP['default'];
+  const hooks = selectHooks(detectedCategory);
   
   const prompt = `You are an expert Facebook/Instagram ad copywriter. Based on the following website content, generate 3 different ad variations.
 
@@ -329,13 +501,13 @@ Only respond with valid JSON, no other text.`;
         }
       ],
       targetAudience: {
-        interests: ['Online Shopping', 'Technology', 'Lifestyle', 'E-commerce', 'Social Media'],
-        ageRange: { min: 25, max: 54 },
-        gender: 'all',
-        demographics: ['Urban professionals', 'Young adults']
+        interests: categoryTargeting.interests,
+        ageRange: categoryTargeting.ageRange,
+        gender: categoryTargeting.gender,
+        demographics: categoryTargeting.demographics
       },
       brandVoice: 'professional',
-      productCategory: 'General'
+      productCategory: detectedCategory
     };
   }
 }

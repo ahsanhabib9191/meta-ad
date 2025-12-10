@@ -167,8 +167,35 @@ The optimization engine in `lib/optimization/` provides:
 - Push schema changes: `npm run db:push`
 - View database: `npm run db:studio`
 
+## Boost Feature (AI Campaign Creation)
+The Boost feature provides a Lexi AI-style campaign creation flow:
+
+**Magic Flow:**
+1. URL Input → User enters website URL
+2. Analyzing → Animated scanning with progress bar
+3. Results → Shows brand colors, USP, page speed, pixel detection, images
+4. Creative → Pick headline, primary text, CTA from AI-generated options
+5. Targeting → AI-suggested interests, age, gender (lookalikes locked until FB connect)
+6. Budget → Daily budget slider, duration picker, estimated reach
+7. Preview → Facebook and Instagram ad mockups
+8. Launch → Connect Facebook to publish
+
+**Backend Intelligence:**
+- Brand color extraction from CSS/HTML
+- Page speed measurement
+- Meta pixel detection (fbq() calls)
+- USP extraction from meta descriptions and h1 tags
+- Hook library with 50+ proven ad hooks
+- Tone matching for copy generation
+
+**User Types Supported:**
+- Newbie: New to Facebook ads, needs awareness campaigns
+- Growing: Has some data, ready for engagement campaigns
+- Pro: Mature pixel, needs sales/lookalike targeting
+
 ## Notes
 - Backend uses PostgreSQL with Drizzle ORM for all data operations
 - Frontend uses Tailwind CSS v4 with @theme directives
 - Dark mode is enabled by default
 - Meta OAuth requires app credentials to be configured
+- OpenAI integration uses Replit AI Integrations (no API key needed)
