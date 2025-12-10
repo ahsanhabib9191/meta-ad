@@ -37,12 +37,12 @@ export default function Dashboard() {
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col">
-            <h1 className="text-white text-3xl font-bold leading-tight tracking-[-0.033em]">Dashboard</h1>
-            <p className="text-text-secondary-dark text-base font-normal leading-normal">
+            <h1 className="text-gray-900 text-3xl font-bold leading-tight tracking-[-0.033em]">Dashboard</h1>
+            <p className="text-gray-600 text-base font-normal leading-normal">
               Welcome back, John. Here's your performance overview.
             </p>
           </div>
-          <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-6 bg-primary text-background-dark text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+          <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-12 px-6 bg-primary text-gray-900 text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
             <span className="material-symbols-outlined">add</span>
             <span className="truncate">Create New Campaign</span>
           </button>
@@ -51,8 +51,8 @@ export default function Dashboard() {
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Primary Setup</h2>
-              <button className="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-white/10 text-white text-sm font-medium leading-normal hover:bg-white/20 transition-colors">
+              <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em]">Primary Setup</h2>
+              <button className="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 text-gray-700 text-sm font-medium leading-normal hover:bg-gray-300 transition-colors">
                 <span className="material-symbols-outlined text-sm">edit</span>
                 <span className="truncate">Change Setup</span>
               </button>
@@ -88,40 +88,40 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Your Business Managers</h2>
+            <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em]">Your Business Managers</h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {mockData.businessManagers.map((bm) => (
-                <div key={bm.id} className="flex flex-col gap-4 rounded-lg border border-solid border-white/10 bg-white/5 p-5">
+                <div key={bm.id} className="flex flex-col gap-4 rounded-lg border border-solid border-gray-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-lg bg-primary/20">
                       <span className="material-symbols-outlined text-primary">business_center</span>
                     </div>
-                    <h3 className="flex-1 text-white text-base font-semibold">{bm.name}</h3>
+                    <h3 className="flex-1 text-gray-900 text-base font-semibold">{bm.name}</h3>
                   </div>
-                  <p className="text-sm text-gray-400">ID: {bm.id}</p>
+                  <p className="text-sm text-gray-500">ID: {bm.id}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col gap-4">
-            <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Ad Accounts Overview</h2>
-            <div className="overflow-hidden rounded-lg border border-solid border-white/10">
+            <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em]">Ad Accounts Overview</h2>
+            <div className="overflow-hidden rounded-lg border border-solid border-gray-200 bg-white shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-white/5">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="p-4 text-sm font-semibold text-white">Account Name</th>
-                      <th className="p-4 text-sm font-semibold text-white">Total Spend</th>
-                      <th className="p-4 text-sm font-semibold text-white">Account Age</th>
+                      <th className="p-4 text-sm font-semibold text-gray-900">Account Name</th>
+                      <th className="p-4 text-sm font-semibold text-gray-900">Total Spend</th>
+                      <th className="p-4 text-sm font-semibold text-gray-900">Account Age</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-gray-100">
                     {mockData.adAccounts.map((account, i) => (
                       <tr key={i}>
-                        <td className="p-4 text-sm text-gray-300">{account.name}</td>
-                        <td className="p-4 text-sm text-gray-300">{account.totalSpend}</td>
-                        <td className="p-4 text-sm text-gray-300">{account.accountAge}</td>
+                        <td className="p-4 text-sm text-gray-700">{account.name}</td>
+                        <td className="p-4 text-sm text-gray-700">{account.totalSpend}</td>
+                        <td className="p-4 text-sm text-gray-700">{account.accountAge}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -132,20 +132,20 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="flex flex-col gap-4">
-              <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Connected Pages</h2>
-              <div className="flex flex-col gap-4 rounded-lg border border-solid border-white/10 bg-white/5 p-5">
+              <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em]">Connected Pages</h2>
+              <div className="flex flex-col gap-4 rounded-lg border border-solid border-gray-200 bg-white p-5 shadow-sm">
                 {mockData.connectedPages.map((page, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
                         <span className="material-symbols-outlined text-primary text-sm">person</span>
                       </div>
-                      <p className="text-base text-white">{page.name}</p>
+                      <p className="text-base text-gray-900">{page.name}</p>
                     </div>
                     <div className={`rounded-full px-3 py-1 text-xs font-medium ${
                       page.type === 'Business' 
-                        ? 'bg-primary/20 text-primary' 
-                        : 'bg-gray-500/20 text-gray-300'
+                        ? 'bg-primary/20 text-emerald-700' 
+                        : 'bg-gray-200 text-gray-600'
                     }`}>
                       {page.type}
                     </div>
@@ -154,15 +154,15 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex flex-col gap-4">
-              <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Meta Pixels</h2>
-              <div className="flex flex-col gap-4 rounded-lg border border-solid border-white/10 bg-white/5 p-5">
+              <h2 className="text-gray-900 text-[22px] font-bold leading-tight tracking-[-0.015em]">Meta Pixels</h2>
+              <div className="flex flex-col gap-4 rounded-lg border border-solid border-gray-200 bg-white p-5 shadow-sm">
                 {mockData.metaPixels.map((pixel, i) => (
                   <div key={i}>
-                    {i > 0 && <hr className="border-white/10 mb-4" />}
+                    {i > 0 && <hr className="border-gray-100 mb-4" />}
                     <div className="flex flex-col gap-2">
-                      <p className="text-base font-medium text-white">{pixel.name}</p>
-                      <p className="text-sm text-gray-400">ID: {pixel.id}</p>
-                      <p className="text-sm text-primary">{pixel.stats}</p>
+                      <p className="text-base font-medium text-gray-900">{pixel.name}</p>
+                      <p className="text-sm text-gray-500">ID: {pixel.id}</p>
+                      <p className="text-sm text-emerald-600 font-medium">{pixel.stats}</p>
                     </div>
                   </div>
                 ))}
