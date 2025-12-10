@@ -19,9 +19,8 @@ const features = [
   },
 ]
 
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000' 
-  : `https://${window.location.hostname.replace('5000', '3000')}`;
+// Backend runs on port 3000 - use relative path with Vite proxy
+const API_BASE = '';
 
 export default function Welcome() {
   const [isConnecting, setIsConnecting] = useState(false)
