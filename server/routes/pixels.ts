@@ -7,7 +7,13 @@ const router = Router();
 const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
 
-async function metaApiRequest(endpoint: string, accessToken: string, method: string = 'GET', body?: any) {
+interface MetaApiResponse {
+  data?: any[];
+  error?: { message: string; code?: number };
+  [key: string]: any;
+}
+
+async function metaApiRequest(endpoint: string, accessToken: string, method: string = 'GET', body?: any): Promise<MetaApiResponse> {
   const url = `${META_API_BASE}${endpoint}`;
   const options: RequestInit = {
     method,
@@ -16,16 +22,36 @@ async function metaApiRequest(endpoint: string, accessToken: string, method: str
     },
   };
   
-  if (method === 'GET') {
-    const separator = url.includes('?') ? '&' : '?';
-    const fullUrl = `${url}${separator}access_token=${accessToken}`;
-    const response = await fetch(fullUrl, options);
-    return response.json();
-  } else {
-    options.body = JSON.stringify({ ...body, access_token: accessToken });
-    const response = await fetch(url, options);
-    return response.json();
+  try {
+    if (method === 'GET') {
+      const separator = url.includes('?') ? '&' : '?';
+      const fullUrl = `${url}${separator}access_token=${accessToken}`;
+      const response = await fetch(fullUrl, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null) as MetaApiResponse | null;
+        return { error: { message: errorData?.error?.message || `HTTP ${response.status}`, code: response.status } };
+      }
+      return response.json() as Promise<MetaApiResponse>;
+    } else {
+      options.body = JSON.stringify({ ...body, access_token: accessToken });
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null) as MetaApiResponse | null;
+        return { error: { message: errorData?.error?.message || `HTTP ${response.status}`, code: response.status } };
+      }
+      return response.json() as Promise<MetaApiResponse>;
+    }
+  } catch (err) {
+    return { error: { message: 'Network error connecting to Meta API' } };
   }
+}
+
+async function getValidatedConnection(tenantId: number, adAccountId: string) {
+  const connection = await storage.getMetaConnectionByAccount(tenantId, adAccountId);
+  if (!connection || connection.status !== 'ACTIVE') {
+    return null;
+  }
+  return connection;
 }
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -36,9 +62,9 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       return res.status(400).json({ error: 'tenantId and adAccountId are required' });
     }
 
-    const connection = await storage.getMetaConnectionByAccount(Number(tenantId), adAccountId as string);
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
     if (!connection) {
-      return res.status(404).json({ error: 'No Meta connection found for this account' });
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
 
     const accountIdWithPrefix = adAccountId.toString().startsWith('act_') 
@@ -51,7 +77,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     );
 
     if (response.error) {
-      logger.error('Meta API error fetching pixels', { error: response.error });
+      logger.warn('Meta API error fetching pixels', { pixelCount: 0 });
       return res.status(400).json({ error: response.error.message });
     }
 
@@ -63,19 +89,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId } = req.query;
+    const { tenantId, adAccountId } = req.query;
     const pixelId = req.params.id;
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId is required' });
+    if (!tenantId || !adAccountId) {
+      return res.status(400).json({ error: 'tenantId and adAccountId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const response = await metaApiRequest(
       `/${pixelId}?fields=id,name,code,creation_time,last_fired_time,is_unavailable,data_use_setting,enable_automatic_matching,automatic_matching_fields,first_party_cookie_status`,
@@ -83,7 +107,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     );
 
     if (response.error) {
-      logger.error('Meta API error fetching pixel', { error: response.error, pixelId });
+      logger.warn('Meta API error fetching pixel', { pixelId });
       return res.status(400).json({ error: response.error.message });
     }
 
@@ -95,19 +119,17 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
 router.get('/:id/stats', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, startTime, endTime } = req.query;
+    const { tenantId, adAccountId, startTime, endTime } = req.query;
     const pixelId = req.params.id;
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId is required' });
+    if (!tenantId || !adAccountId) {
+      return res.status(400).json({ error: 'tenantId and adAccountId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const now = Math.floor(Date.now() / 1000);
     const defaultStartTime = now - (7 * 24 * 60 * 60);
@@ -121,7 +143,7 @@ router.get('/:id/stats', async (req: Request, res: Response, next: NextFunction)
     );
 
     if (response.error) {
-      logger.error('Meta API error fetching pixel stats', { error: response.error, pixelId });
+      logger.warn('Meta API error fetching pixel stats', { pixelId });
       return res.status(400).json({ error: response.error.message });
     }
 
@@ -133,19 +155,17 @@ router.get('/:id/stats', async (req: Request, res: Response, next: NextFunction)
 
 router.post('/:id/verify', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, domain } = req.body;
+    const { tenantId, adAccountId, domain } = req.body;
     const pixelId = req.params.id;
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId is required' });
+    if (!tenantId || !adAccountId) {
+      return res.status(400).json({ error: 'tenantId and adAccountId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const pixelResponse = await metaApiRequest(
       `/${pixelId}?fields=id,name,last_fired_time,is_unavailable`,
@@ -210,19 +230,17 @@ router.post('/:id/verify', async (req: Request, res: Response, next: NextFunctio
 
 router.get('/:id/events', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, limit } = req.query;
+    const { tenantId, adAccountId, limit } = req.query;
     const pixelId = req.params.id;
 
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId is required' });
+    if (!tenantId || !adAccountId) {
+      return res.status(400).json({ error: 'tenantId and adAccountId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const now = Math.floor(Date.now() / 1000);
     const last7Days = now - (7 * 24 * 60 * 60);
@@ -233,7 +251,7 @@ router.get('/:id/events', async (req: Request, res: Response, next: NextFunction
     );
 
     if (response.error) {
-      logger.error('Meta API error fetching pixel events', { error: response.error, pixelId });
+      logger.warn('Meta API error fetching pixel events', { pixelId });
       return res.status(400).json({ error: response.error.message });
     }
 

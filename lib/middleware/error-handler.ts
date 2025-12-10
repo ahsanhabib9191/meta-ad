@@ -1,5 +1,5 @@
-import type { IncomingMessage, ServerResponse } from 'http';
-import logger from '../utils/logger';
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
 
 export class AppError extends Error {
   statusCode: number;
@@ -29,7 +29,7 @@ export interface ErrorResponse {
   timestamp: string;
 }
 
-export function errorHandler(error: Error, req: IncomingMessage, res: ServerResponse) {
+export function errorHandler(error: Error, req: Request, res: Response, next: NextFunction) {
   const appErr = error instanceof AppError ? error : AppError.internal('Unexpected error');
   const requestId = (req.headers?.['x-request-id'] as string) || '';
   const payload: ErrorResponse = {
@@ -40,18 +40,16 @@ export function errorHandler(error: Error, req: IncomingMessage, res: ServerResp
     requestId,
     timestamp: new Date().toISOString()
   };
-  logger.error('API error', { code: payload.code, requestId, message: appErr.message, details: appErr.details });
-  res.statusCode = appErr.statusCode;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(payload));
+  logger.error('API error', { code: payload.code, requestId, message: appErr.message });
+  res.status(appErr.statusCode).json(payload);
 }
 
-export function asyncHandler(handler: (req: IncomingMessage, res: ServerResponse) => Promise<void>) {
-  return async (req: IncomingMessage, res: ServerResponse) => {
+export function asyncHandler(handler: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await handler(req, res);
+      await handler(req, res, next);
     } catch (err) {
-      errorHandler(err as Error, req, res);
+      next(err);
     }
   };
 }

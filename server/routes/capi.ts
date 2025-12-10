@@ -8,7 +8,17 @@ const router = Router();
 const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
 
-async function metaApiRequest(endpoint: string, accessToken: string, method: string = 'GET', body?: any) {
+interface MetaApiResponse {
+  data?: any[];
+  error?: { message: string; code?: number };
+  events_received?: number;
+  messages?: string[];
+  fbtrace_id?: string;
+  event_match_quality?: number;
+  [key: string]: any;
+}
+
+async function metaApiRequest(endpoint: string, accessToken: string, method: string = 'GET', body?: any): Promise<MetaApiResponse> {
   const url = `${META_API_BASE}${endpoint}`;
   const options: RequestInit = {
     method,
@@ -17,17 +27,29 @@ async function metaApiRequest(endpoint: string, accessToken: string, method: str
     },
   };
   
-  if (method === 'GET') {
-    const separator = url.includes('?') ? '&' : '?';
-    const fullUrl = `${url}${separator}access_token=${accessToken}`;
-    const response = await fetch(fullUrl, options);
-    return response.json();
-  } else {
-    const separator = endpoint.includes('?') ? '&' : '?';
-    const fullUrl = `${url}${separator}access_token=${accessToken}`;
-    options.body = JSON.stringify(body);
-    const response = await fetch(fullUrl, options);
-    return response.json();
+  try {
+    if (method === 'GET') {
+      const separator = url.includes('?') ? '&' : '?';
+      const fullUrl = `${url}${separator}access_token=${accessToken}`;
+      const response = await fetch(fullUrl, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null) as MetaApiResponse | null;
+        return { error: { message: errorData?.error?.message || `HTTP ${response.status}`, code: response.status } };
+      }
+      return response.json() as Promise<MetaApiResponse>;
+    } else {
+      const separator = endpoint.includes('?') ? '&' : '?';
+      const fullUrl = `${url}${separator}access_token=${accessToken}`;
+      options.body = JSON.stringify(body);
+      const response = await fetch(fullUrl, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null) as MetaApiResponse | null;
+        return { error: { message: errorData?.error?.message || `HTTP ${response.status}`, code: response.status } };
+      }
+      return response.json() as Promise<MetaApiResponse>;
+    }
+  } catch (err) {
+    return { error: { message: 'Network error connecting to Meta API' } };
   }
 }
 
@@ -35,20 +57,26 @@ function hashValue(value: string): string {
   return crypto.createHash('sha256').update(value.toLowerCase().trim()).digest('hex');
 }
 
+async function getValidatedConnection(tenantId: number, adAccountId: string) {
+  const connection = await storage.getMetaConnectionByAccount(tenantId, adAccountId);
+  if (!connection || connection.status !== 'ACTIVE') {
+    return null;
+  }
+  return connection;
+}
+
 router.get('/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, pixelId } = req.query;
+    const { tenantId, adAccountId, pixelId } = req.query;
 
-    if (!tenantId || !pixelId) {
-      return res.status(400).json({ error: 'tenantId and pixelId are required' });
+    if (!tenantId || !adAccountId || !pixelId) {
+      return res.status(400).json({ error: 'tenantId, adAccountId, and pixelId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const pixelResponse = await metaApiRequest(
       `/${pixelId}?fields=id,name,is_unavailable,data_use_setting`,
@@ -107,18 +135,16 @@ router.get('/status', async (req: Request, res: Response, next: NextFunction) =>
 
 router.post('/events', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, pixelId, events, testEventCode } = req.body;
+    const { tenantId, adAccountId, pixelId, events, testEventCode } = req.body;
 
-    if (!tenantId || !pixelId || !events || !Array.isArray(events)) {
-      return res.status(400).json({ error: 'tenantId, pixelId, and events array are required' });
+    if (!tenantId || !adAccountId || !pixelId || !events || !Array.isArray(events)) {
+      return res.status(400).json({ error: 'tenantId, adAccountId, pixelId, and events array are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const formattedEvents = events.map((event: any) => {
       const formattedEvent: any = {
@@ -139,7 +165,8 @@ router.post('/events', async (req: Request, res: Response, next: NextFunction) =
         formattedEvent.user_data.em = [hashValue(userData.email)];
       }
       if (userData.phone) {
-        formattedEvent.user_data.ph = [hashValue(userData.phone.replace(/\D/g, ''))];
+        const cleanPhone = userData.phone.replace(/\D/g, '');
+        formattedEvent.user_data.ph = [hashValue(cleanPhone)];
       }
       if (userData.firstName) {
         formattedEvent.user_data.fn = [hashValue(userData.firstName)];
@@ -148,19 +175,25 @@ router.post('/events', async (req: Request, res: Response, next: NextFunction) =
         formattedEvent.user_data.ln = [hashValue(userData.lastName)];
       }
       if (userData.city) {
-        formattedEvent.user_data.ct = [hashValue(userData.city)];
+        formattedEvent.user_data.ct = [hashValue(userData.city.replace(/\s/g, ''))];
       }
       if (userData.state) {
-        formattedEvent.user_data.st = [hashValue(userData.state)];
+        formattedEvent.user_data.st = [hashValue(userData.state.toLowerCase().trim())];
       }
       if (userData.zipCode) {
-        formattedEvent.user_data.zp = [hashValue(userData.zipCode)];
+        formattedEvent.user_data.zp = [hashValue(userData.zipCode.replace(/\s/g, ''))];
       }
       if (userData.country) {
-        formattedEvent.user_data.country = [hashValue(userData.country)];
+        formattedEvent.user_data.country = [userData.country.toLowerCase().trim()];
       }
       if (userData.externalId) {
         formattedEvent.user_data.external_id = [hashValue(userData.externalId)];
+      }
+      if (userData.gender) {
+        formattedEvent.user_data.ge = [hashValue(userData.gender.charAt(0))];
+      }
+      if (userData.dateOfBirth) {
+        formattedEvent.user_data.db = [hashValue(userData.dateOfBirth.replace(/\D/g, ''))];
       }
       if (userData.clientIpAddress) {
         formattedEvent.user_data.client_ip_address = userData.clientIpAddress;
@@ -182,7 +215,10 @@ router.post('/events', async (req: Request, res: Response, next: NextFunction) =
       return formattedEvent;
     });
 
-    const payload: any = { data: formattedEvents };
+    const payload: any = { 
+      data: formattedEvents,
+      partner_agent: 'shothik-capi-1.0'
+    };
     
     if (testEventCode) {
       payload.test_event_code = testEventCode;
@@ -196,7 +232,7 @@ router.post('/events', async (req: Request, res: Response, next: NextFunction) =
     );
 
     if (response.error) {
-      logger.error('CAPI error sending events', { error: response.error, pixelId });
+      logger.warn('CAPI error sending events', { pixelId, eventCount: events.length });
       return res.status(400).json({ error: response.error.message });
     }
 
@@ -221,29 +257,15 @@ router.post('/events', async (req: Request, res: Response, next: NextFunction) =
 
 router.get('/event-match-quality', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, pixelId } = req.query;
+    const { tenantId, adAccountId, pixelId } = req.query;
 
-    if (!tenantId || !pixelId) {
-      return res.status(400).json({ error: 'tenantId and pixelId are required' });
+    if (!tenantId || !adAccountId || !pixelId) {
+      return res.status(400).json({ error: 'tenantId, adAccountId, and pixelId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
-    }
-
-    const connection = connections[0];
-
-    const now = Math.floor(Date.now() / 1000);
-    const last7Days = now - (7 * 24 * 60 * 60);
-
-    const response = await metaApiRequest(
-      `/${pixelId}/stats?start_time=${last7Days}&end_time=${now}&aggregation=event&fields=data`,
-      connection.accessToken
-    );
-
-    if (response.error) {
-      return res.status(400).json({ error: response.error.message });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
 
     const emqResponse = await metaApiRequest(
@@ -251,17 +273,19 @@ router.get('/event-match-quality', async (req: Request, res: Response, next: Nex
       connection.accessToken
     );
 
-    let eventMatchQuality = null;
-    if (emqResponse.event_match_quality) {
-      eventMatchQuality = emqResponse.event_match_quality;
+    if (emqResponse.error) {
+      return res.status(400).json({ error: emqResponse.error.message });
     }
+
+    let eventMatchQuality = emqResponse.event_match_quality || null;
 
     const recommendations = [];
     
     if (!eventMatchQuality || eventMatchQuality < 6) {
       recommendations.push('Add more customer information parameters (email, phone, name) to improve match quality');
       recommendations.push('Ensure Advanced Matching is enabled on your pixel');
-      recommendations.push('Hash all PII data using SHA-256 before sending');
+      recommendations.push('Hash PII data using SHA-256 (email, phone, name) - do NOT hash country codes');
+      recommendations.push('Include fbc and fbp cookies from the browser');
     }
 
     res.json({
@@ -272,8 +296,8 @@ router.get('/event-match-quality', async (req: Request, res: Response, next: Nex
         recommendations,
         parameters: {
           required: ['event_name', 'event_time', 'user_data', 'action_source'],
-          recommended: ['email (em)', 'phone (ph)', 'first_name (fn)', 'last_name (ln)', 'external_id', 'fbc', 'fbp'],
-          optional: ['city (ct)', 'state (st)', 'zip (zp)', 'country', 'gender (ge)', 'date_of_birth (db)'],
+          hashRequired: ['email (em)', 'phone (ph)', 'first_name (fn)', 'last_name (ln)', 'city (ct)', 'state (st)', 'zip (zp)', 'external_id', 'gender (ge)', 'date_of_birth (db)'],
+          noHash: ['country (2-letter ISO code)', 'client_ip_address', 'client_user_agent', 'fbc', 'fbp'],
         }
       }
     });
@@ -284,20 +308,18 @@ router.get('/event-match-quality', async (req: Request, res: Response, next: Nex
 
 router.post('/test-event', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, pixelId, testEventCode, eventName, userData } = req.body;
+    const { tenantId, adAccountId, pixelId, testEventCode, eventName, userData } = req.body;
 
-    if (!tenantId || !pixelId || !testEventCode) {
-      return res.status(400).json({ error: 'tenantId, pixelId, and testEventCode are required' });
+    if (!tenantId || !adAccountId || !pixelId || !testEventCode) {
+      return res.status(400).json({ error: 'tenantId, adAccountId, pixelId, and testEventCode are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
 
-    const connection = connections[0];
-
-    const testEvent = {
+    const testEvent: any = {
       event_name: eventName || 'TestEvent',
       event_time: Math.floor(Date.now() / 1000),
       action_source: 'website',
@@ -310,15 +332,16 @@ router.post('/test-event', async (req: Request, res: Response, next: NextFunctio
     };
 
     if (userData?.email) {
-      (testEvent.user_data as any).em = [hashValue(userData.email)];
+      testEvent.user_data.em = [hashValue(userData.email)];
     }
     if (userData?.phone) {
-      (testEvent.user_data as any).ph = [hashValue(userData.phone)];
+      testEvent.user_data.ph = [hashValue(userData.phone.replace(/\D/g, ''))];
     }
 
     const payload = {
       data: [testEvent],
       test_event_code: testEventCode,
+      partner_agent: 'shothik-capi-1.0'
     };
 
     const response = await metaApiRequest(
@@ -329,7 +352,7 @@ router.post('/test-event', async (req: Request, res: Response, next: NextFunctio
     );
 
     if (response.error) {
-      logger.error('CAPI test event error', { error: response.error, pixelId });
+      logger.warn('CAPI test event error', { pixelId, testEventCode });
       return res.status(400).json({ error: response.error.message });
     }
 
@@ -357,18 +380,16 @@ router.post('/test-event', async (req: Request, res: Response, next: NextFunctio
 
 router.get('/diagnostics', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tenantId, pixelId } = req.query;
+    const { tenantId, adAccountId, pixelId } = req.query;
 
-    if (!tenantId || !pixelId) {
-      return res.status(400).json({ error: 'tenantId and pixelId are required' });
+    if (!tenantId || !adAccountId || !pixelId) {
+      return res.status(400).json({ error: 'tenantId, adAccountId, and pixelId are required' });
     }
 
-    const connections = await storage.getMetaConnections(Number(tenantId));
-    if (connections.length === 0) {
-      return res.status(404).json({ error: 'No Meta connections found' });
+    const connection = await getValidatedConnection(Number(tenantId), adAccountId as string);
+    if (!connection) {
+      return res.status(404).json({ error: 'No active Meta connection found for this account' });
     }
-
-    const connection = connections[0];
 
     const pixelResponse = await metaApiRequest(
       `/${pixelId}?fields=id,name,is_unavailable,data_use_setting,first_party_cookie_status,automatic_matching_fields,enable_automatic_matching`,

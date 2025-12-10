@@ -4,7 +4,7 @@
 Shothik.ai is a Meta ads automation platform with AI-powered optimization. The project consists of:
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS dashboard (port 5000)
 - **Backend API**: Express + TypeScript REST API server (port 3000)
-- **Database Layer**: MongoDB + Redis with Mongoose ODM
+- **Database Layer**: PostgreSQL with Drizzle ORM
 - **Meta Integration**: Graph API sync, webhooks, OAuth authentication
 
 ## Project State
@@ -30,6 +30,8 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 - `server/routes/auth.ts` - Meta OAuth and tenant management
 - `server/routes/optimization.ts` - Optimization recommendations API
 - `server/routes/webhooks.ts` - Meta webhook handlers
+- `server/routes/pixels.ts` - Pixel management API
+- `server/routes/capi.ts` - Conversions API (CAPI) integration
 
 ### Backend Infrastructure (`lib/`)
 - `lib/db/` - Database models and connection management (Mongoose/MongoDB)
@@ -82,8 +84,25 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 ### Auth
 - `GET /api/auth/meta/connect` - Get Meta OAuth URL
 - `POST /api/auth/meta/callback` - Handle OAuth callback
+- `GET /api/auth/meta/accounts` - Get user's ad accounts
 - `GET /api/auth/connections` - List Meta connections
+- `DELETE /api/auth/connections/:id` - Remove Meta connection
 - `POST /api/auth/tenant` - Create tenant
+- `GET /api/auth/tenant/:id` - Get tenant details
+
+### Pixels
+- `GET /api/pixels` - List all pixels for ad account
+- `GET /api/pixels/:id` - Get pixel details
+- `GET /api/pixels/:id/stats` - Get pixel event stats
+- `POST /api/pixels/:id/verify` - Verify pixel installation
+- `GET /api/pixels/:id/events` - Get recent pixel events
+
+### CAPI (Conversions API)
+- `GET /api/capi/status` - Check CAPI connection status
+- `POST /api/capi/events` - Send conversion events to Meta
+- `GET /api/capi/event-match-quality` - Get Event Match Quality score
+- `POST /api/capi/test-event` - Send test event to verify setup
+- `GET /api/capi/diagnostics` - Get CAPI diagnostics & errors
 
 ### Health
 - `GET /health` - Health check

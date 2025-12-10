@@ -237,6 +237,10 @@ export class DatabaseStorage implements IStorage {
     return connection || undefined;
   }
 
+  async getMetaConnectionByAccount(tenantId: number, adAccountId: string): Promise<MetaConnection | undefined> {
+    return this.getMetaConnection(tenantId, adAccountId);
+  }
+
   async getMetaConnections(tenantId: number): Promise<MetaConnection[]> {
     const database = getDb();
     return database.select().from(metaConnections)

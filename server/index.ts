@@ -9,6 +9,8 @@ import performanceRoutes from './routes/performance';
 import authRoutes from './routes/auth';
 import optimizationRoutes from './routes/optimization';
 import webhookRoutes from './routes/webhooks';
+import pixelRoutes from './routes/pixels';
+import capiRoutes from './routes/capi';
 import { pool } from './db';
 import { logger } from '../lib/utils/logger';
 
@@ -37,6 +39,8 @@ app.use('/api/ad-sets', adSetRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/optimization', optimizationRoutes);
+app.use('/api/pixels', pixelRoutes);
+app.use('/api/capi', capiRoutes);
 app.use('/webhooks', webhookRoutes);
 
 app.use(errorHandler);
