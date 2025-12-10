@@ -10,6 +10,9 @@ async function run() {
 
   const key = 'ip:127.0.0.1';
 
+  // Clear any existing data first
+  await redis.del(`test:${key}`);
+
   // 3 allowed
   for (let i = 0; i < 3; i++) {
     const res = await limiter(key);
