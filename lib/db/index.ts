@@ -7,8 +7,8 @@ import { WebsiteAuditModel } from './models/WebsiteAudit';
 import { GeneratedCopyModel } from './models/GeneratedCopy';
 import { AdSetModel } from './models/ad-set';
 import { AdModel } from './models/ad';
+import { PerformanceSnapshotModel } from './models/performance-snapshot';
 
-// Static array of models for faster initialization (avoids dynamic import overhead)
 const models = [
   CampaignModel,
   OptimizationLogModel,
@@ -18,6 +18,7 @@ const models = [
   GeneratedCopyModel,
   AdSetModel,
   AdModel,
+  PerformanceSnapshotModel,
 ];
 
 export async function initializeDatabase(): Promise<void> {

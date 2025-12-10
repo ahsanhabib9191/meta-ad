@@ -10,6 +10,9 @@ export type { IAd, AdStatus, AdEffectiveStatus, IAdCreative, IAdIssue } from './
 export { OptimizationLogModel } from './optimization-log';
 export type { IOptimizationLog, OptimizationEntity } from './optimization-log';
 
+export { PerformanceSnapshotModel } from './performance-snapshot';
+export type { IPerformanceSnapshot, EntityType } from './performance-snapshot';
+
 export { TenantModel, Tenant } from './Tenant';
 export type { ITenant, PlanTier } from './Tenant';
 
