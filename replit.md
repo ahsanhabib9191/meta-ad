@@ -16,7 +16,7 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 ## Architecture
 
 ### Frontend (`client/`)
-- `client/src/pages/` - Page components (Dashboard, Welcome, Register, MonthlyReview, PixelVerification, WeeklyReport)
+- `client/src/pages/` - Page components (Dashboard, Welcome, Register, MonthlyReview, PixelVerification, WeeklyReport, Boost, BoostPreview, OAuthCallback)
 - `client/src/components/` - Shared components (Layout, Sidebar)
 - `client/src/App.tsx` - React Router routes
 - `client/src/index.css` - Tailwind CSS with custom theme
@@ -32,6 +32,7 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 - `server/routes/webhooks.ts` - Meta webhook handlers
 - `server/routes/pixels.ts` - Pixel management API
 - `server/routes/capi.ts` - Conversions API (CAPI) integration
+- `server/routes/boost.ts` - AI-powered campaign creation (Lexi AI-style)
 
 ### Backend Infrastructure (`lib/`)
 - `lib/db/` - Database models and connection management (Mongoose/MongoDB)
@@ -104,6 +105,10 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 - `POST /api/capi/test-event` - Send test event to verify setup
 - `GET /api/capi/diagnostics` - Get CAPI diagnostics & errors
 
+### Boost (AI Campaign Creation)
+- `POST /api/boost/analyze` - Analyze URL and generate AI ad copy
+- `POST /api/boost/launch` - Launch campaign with selected ad variant
+
 ### Health
 - `GET /health` - Health check
 
@@ -122,6 +127,9 @@ Shothik.ai is a Meta ads automation platform with AI-powered optimization. The p
 4. **Monthly Review** (`/monthly-review`) - Performance analytics and AI copy testing
 5. **Pixel Verification** (`/pixel-verification`) - Pixel & CAPI setup verification
 6. **Weekly Report** (`/reports`) - Weekly performance report with charts
+7. **Boost** (`/boost`) - AI-powered campaign creation (Lexi AI-style URL → Ads flow)
+8. **Boost Preview** (`/boost/preview`) - Preview and launch AI-generated campaigns
+9. **OAuth Callback** (`/oauth-callback`) - Meta OAuth callback handler
 
 ## Environment Variables
 Set these in `.env` or Replit Secrets:

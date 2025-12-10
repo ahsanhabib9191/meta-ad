@@ -11,6 +11,7 @@ import optimizationRoutes from './routes/optimization';
 import webhookRoutes from './routes/webhooks';
 import pixelRoutes from './routes/pixels';
 import capiRoutes from './routes/capi';
+import boostRoutes from './routes/boost';
 import { pool } from './db';
 import { logger } from '../lib/utils/logger';
 
@@ -41,6 +42,7 @@ app.use('/api/performance', performanceRoutes);
 app.use('/api/optimization', optimizationRoutes);
 app.use('/api/pixels', pixelRoutes);
 app.use('/api/capi', capiRoutes);
+app.use('/api/boost', boostRoutes);
 app.use('/webhooks', webhookRoutes);
 
 app.use(errorHandler);

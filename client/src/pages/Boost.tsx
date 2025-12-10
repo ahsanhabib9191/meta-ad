@@ -15,19 +15,21 @@ export default function Boost() {
       return
     }
 
+    try {
+      new URL(url)
+    } catch {
+      setError('Please enter a valid URL')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('url', url)
-      uploadedFiles.forEach(file => {
-        formData.append('assets', file)
-      })
-
       const response = await fetch('/api/boost/analyze', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
       })
 
       const data = await response.json()
