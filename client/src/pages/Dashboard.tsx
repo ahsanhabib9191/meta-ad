@@ -58,30 +58,30 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="flex flex-col gap-4 rounded-lg border border-solid border-primary/50 bg-primary/10 p-5">
+              <div className="flex flex-col gap-4 rounded-lg border border-solid border-primary bg-primary/20 p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-white text-base font-semibold">Primary Ad Account</h3>
-                  <div className="flex items-center gap-2 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-                    <div className="size-2 rounded-full bg-primary"></div>
+                  <h3 className="text-background-dark text-base font-semibold">Primary Ad Account</h3>
+                  <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-emerald-700">
+                    <div className="size-2 rounded-full bg-emerald-500"></div>
                     <span>{mockData.primaryAdAccount.status}</span>
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-white text-lg">{mockData.primaryAdAccount.name}</p>
-                  <p className="text-sm text-gray-400">ID: {mockData.primaryAdAccount.id}</p>
+                  <p className="text-background-dark text-lg font-medium">{mockData.primaryAdAccount.name}</p>
+                  <p className="text-sm text-gray-700">ID: {mockData.primaryAdAccount.id}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-4 rounded-lg border border-solid border-primary/50 bg-primary/10 p-5">
+              <div className="flex flex-col gap-4 rounded-lg border border-solid border-primary bg-primary/20 p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-white text-base font-semibold">Associated Pixel</h3>
-                  <div className="flex items-center gap-2 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-                    <div className="size-2 rounded-full bg-primary"></div>
+                  <h3 className="text-background-dark text-base font-semibold">Associated Pixel</h3>
+                  <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-emerald-700">
+                    <div className="size-2 rounded-full bg-emerald-500"></div>
                     <span>{mockData.associatedPixel.status}</span>
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-white text-lg">{mockData.associatedPixel.name}</p>
-                  <p className="text-sm text-gray-400">ID: {mockData.associatedPixel.id}</p>
+                  <p className="text-background-dark text-lg font-medium">{mockData.associatedPixel.name}</p>
+                  <p className="text-sm text-gray-700">ID: {mockData.associatedPixel.id}</p>
                 </div>
               </div>
             </div>
