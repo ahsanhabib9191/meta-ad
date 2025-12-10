@@ -151,7 +151,7 @@ Validate required environment variables at startup:
 
 ```typescript
 function validateEnv() {
-  const required = ['MONGODB_URI', 'REDIS_URL', 'JWT_SECRET'];
+  const required = ['MONGODB_URI', 'REDIS_URL', 'NEXTAUTH_SECRET'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -215,11 +215,11 @@ await Model.deleteOne({ _id: doc._id });
 import jwt from 'jsonwebtoken';
 
 // Test token generation
-const token = jwt.sign({ userId: 'test' }, process.env.JWT_SECRET!);
+const token = jwt.sign({ userId: 'test' }, process.env.NEXTAUTH_SECRET!);
 console.log('✅ Token generated');
 
 // Test token verification
-const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
 console.log('✅ Token verified:', decoded);
 ```
 
