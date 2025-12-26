@@ -100,8 +100,8 @@ async function fetchJson<T>(
 
     const payload = (await response.json()) as T & { error?: GraphError };
 
-    if (!response.ok || (payload && (payload as any).error)) {
-      const error = (payload as any).error;
+    if (!response.ok || payload.error) {
+      const error = payload.error;
       
       if (error) {
         const apiError = new MetaAPIError(
@@ -185,11 +185,18 @@ async function refreshAccessToken(connection: IMetaConnection): Promise<IMetaCon
   refreshUrl.searchParams.set('client_secret', META_APP_SECRET!);
   refreshUrl.searchParams.set('fb_exchange_token', refreshToken);
 
-  const refreshResponse = await fetch(refreshUrl.toString());
-  const refreshPayload = (await refreshResponse.json()) as Record<string, any> & { error?: GraphError };
+  interface RefreshTokenResponse {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+    error?: GraphError;
+  }
 
-  if (!refreshResponse.ok || refreshPayload?.error) {
-    const error = refreshPayload?.error;
+  const refreshResponse = await fetch(refreshUrl.toString());
+  const refreshPayload = (await refreshResponse.json()) as RefreshTokenResponse;
+
+  if (!refreshResponse.ok || refreshPayload.error) {
+    const error = refreshPayload.error;
     const message = error ? `${error.code} ${error.message}` : 'Failed to refresh Meta token';
     throw new Error(message);
   }
@@ -278,13 +285,24 @@ export async function fetchInsights<T>(
   return results;
 }
 
+interface BatchRequestItem {
+  method: string;
+  relative_url: string;
+}
+
+interface BatchResponseItem {
+  code: number;
+  headers?: Array<{ name: string; value: string }>;
+  body?: string;
+}
+
 export async function batchRequest(
   accessToken: string,
-  requests: Array<{ method: string; relative_url: string }>,
+  requests: BatchRequestItem[],
   userId?: string
-): Promise<any[]> {
+): Promise<BatchResponseItem[]> {
   const url = buildUrl('', { access_token: accessToken });
-  
+
   if (userId) {
     await checkRateLimit(userId);
   }
@@ -301,7 +319,7 @@ export async function batchRequest(
     throw new MetaAPIError(`Batch request failed with status ${response.status}`, response.status);
   }
 
-  const results = (await response.json()) as any[];
+  const results = (await response.json()) as BatchResponseItem[];
   return results;
 }
 

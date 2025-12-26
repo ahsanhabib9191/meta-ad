@@ -19,9 +19,14 @@ export interface MetaWebhookEntry {
   changes?: MetaWebhookChange[];
 }
 
+export interface MetaWebhookChangeValue {
+  id?: string;
+  [key: string]: unknown;
+}
+
 export interface MetaWebhookChange {
   field: 'ad' | 'adset' | 'campaign' | string;
-  value: Record<string, any>;
+  value: MetaWebhookChangeValue;
 }
 
 const APP_SECRET = process.env.META_APP_SECRET;

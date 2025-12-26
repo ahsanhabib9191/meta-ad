@@ -22,7 +22,7 @@ export interface IAdCreative {
   body?: string;
   callToAction?: string;
   linkUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IAd extends Document {

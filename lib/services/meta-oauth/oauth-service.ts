@@ -292,7 +292,13 @@ export async function saveMetaConnection(
  * Get decrypted access token for a tenant
  */
 export async function getAccessToken(tenantId: string, adAccountId?: string): Promise<string> {
-  const query: any = { tenantId, status: 'ACTIVE' };
+  interface ConnectionQuery {
+    tenantId: string;
+    status: string;
+    adAccountId?: string;
+  }
+
+  const query: ConnectionQuery = { tenantId, status: 'ACTIVE' };
   if (adAccountId) {
     query.adAccountId = adAccountId;
   }
@@ -335,7 +341,12 @@ export async function refreshConnection(tenantId: string, adAccountId?: string):
   const adAccounts = await getUserAdAccounts(accessToken, debugData.user_id);
 
   // Update connection
-  const query: any = { tenantId };
+  interface ConnectionQuery {
+    tenantId: string;
+    adAccountId?: string;
+  }
+
+  const query: ConnectionQuery = { tenantId };
   if (adAccountId) {
     query.adAccountId = adAccountId;
   }
@@ -361,7 +372,12 @@ export async function refreshConnection(tenantId: string, adAccountId?: string):
 export async function revokeConnection(tenantId: string, adAccountId?: string): Promise<void> {
   logger.info('Revoking Meta connection', { tenantId, adAccountId });
 
-  const query: any = { tenantId };
+  interface ConnectionQuery {
+    tenantId: string;
+    adAccountId?: string;
+  }
+
+  const query: ConnectionQuery = { tenantId };
   if (adAccountId) {
     query.adAccountId = adAccountId;
   }
