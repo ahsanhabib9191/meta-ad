@@ -17,13 +17,20 @@ function getTokenFromHeaders(req: IncomingMessage): string | null {
   return null;
 }
 
+interface JwtPayload {
+  userId?: string;
+  tenantId?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
 export async function verifyAuth(req: IncomingMessage): Promise<AuthUser | null> {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
   const token = getTokenFromHeaders(req);
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, secret) as any;
+    const payload = jwt.verify(token, secret) as JwtPayload;
     if (!payload?.userId || !payload?.tenantId || !payload?.email) return null;
     // Only select the plan field for efficiency
     const tenant = await TenantModel.findOne({ tenantId: payload.tenantId }).select('plan').lean();
@@ -35,7 +42,20 @@ export async function verifyAuth(req: IncomingMessage): Promise<AuthUser | null>
 }
 
 // Minimal handler types to avoid Next.js dependency
-type MinimalHandler = (req: IncomingMessage & { [key: string]: any }, res: { statusCode: number; setHeader: (k: string, v: string) => void; end: (body?: any) => void }) => any | Promise<any>;
+interface AuthenticatedRequest extends IncomingMessage {
+  user?: AuthUser;
+}
+
+interface MinimalResponse {
+  statusCode: number;
+  setHeader: (key: string, value: string) => void;
+  end: (body?: string) => void;
+}
+
+type MinimalHandler = (
+  req: AuthenticatedRequest,
+  res: MinimalResponse
+) => void | Promise<void>;
 
 export function requireAuth(handler: MinimalHandler): MinimalHandler {
   return async (req, res) => {
@@ -46,7 +66,7 @@ export function requireAuth(handler: MinimalHandler): MinimalHandler {
       res.end(JSON.stringify({ status: 'error', code: 'UNAUTHORIZED', message: 'Authentication required' }));
       return;
     }
-    (req as any).user = user;
+    req.user = user;
     return handler(req, res);
   };
 }

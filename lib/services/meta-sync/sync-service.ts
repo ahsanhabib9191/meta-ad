@@ -27,18 +27,68 @@ interface GraphCampaign {
   stop_time?: string;
 }
 
+interface GraphTargeting {
+  app_store_audience_size?: number;
+  age_min?: number;
+  age_max?: number;
+  genders?: number[];
+  geo_locations?: {
+    countries?: Array<{ key: string } | string>;
+  };
+  interests?: Array<{ name: string }>;
+  custom_audiences?: string[];
+  lookalike_specs?: Array<{ name: string }>;
+  excluded_custom_audiences?: string[];
+}
+
+interface GraphDeliveryInfo {
+  status?: string;
+  daily_spend?: string | number;
+}
+
 interface GraphAdSet {
   id: string;
   name: string;
   status?: string;
   daily_budget?: string;
-  targeting?: Record<string, any>;
+  targeting?: GraphTargeting;
   optimization_goal?: string;
   learning_phase_status?: string;
   start_time?: string;
   end_time?: string;
   campaign_id?: string;
-  delivery_info?: Record<string, any>;
+  delivery_info?: GraphDeliveryInfo;
+}
+
+interface GraphCreative {
+  id?: string;
+  asset_feed_spec?: {
+    attachment_style?: string;
+  };
+  object_story_spec?: {
+    link_data?: {
+      link?: string;
+      call_to_action?: {
+        type?: string;
+      };
+    };
+  };
+  title?: string;
+  headline?: string;
+  name?: string;
+  body?: string;
+  message?: string;
+  call_to_action?: {
+    type?: string;
+  };
+  link_url?: string;
+}
+
+interface GraphAdIssue {
+  error_code: number;
+  error_message: string;
+  error_summary: string;
+  level: string;
 }
 
 interface GraphAd {
@@ -47,13 +97,8 @@ interface GraphAd {
   status?: string;
   effective_status?: string;
   adset_id?: string;
-  creative?: Record<string, any>;
-  issues_info?: Array<{
-    error_code: number;
-    error_message: string;
-    error_summary: string;
-    level: string;
-  }>;
+  creative?: GraphCreative;
+  issues_info?: GraphAdIssue[];
 }
 
 interface GraphInsights {
@@ -171,14 +216,14 @@ function normalizeAdEffectiveStatus(status?: string): string {
   return adEffectiveStatusMap[status] || 'PAUSED';
 }
 
-function mapTargeting(targeting?: Record<string, any>): ITargeting {
+function mapTargeting(targeting?: GraphTargeting): ITargeting {
   if (!targeting) {
     return {};
   }
 
-  const countries:
-    | string[]
-    | undefined = targeting.geo_locations?.countries?.map((c: any) => c.key) ?? targeting.geo_locations?.countries;
+  const countries = targeting.geo_locations?.countries?.map((c) =>
+    typeof c === 'string' ? c : c.key
+  );
   const locations: string[] = [];
   if (countries) {
     locations.push(...countries.filter(Boolean));
@@ -190,25 +235,34 @@ function mapTargeting(targeting?: Record<string, any>): ITargeting {
     ageMax: targeting.age_max,
     genders: targeting.genders,
     locations,
-    interests: targeting.interests?.map((interest: any) => interest.name),
+    interests: targeting.interests?.map((interest) => interest.name),
     customAudiences: targeting.custom_audiences,
-    lookalikes: targeting.lookalike_specs?.map((lookalike: any) => lookalike.name),
+    lookalikes: targeting.lookalike_specs?.map((lookalike) => lookalike.name),
     exclusions: targeting.excluded_custom_audiences,
   };
 }
 
-function mapCreative(creative?: Record<string, any>): Record<string, any> {
+interface MappedCreative {
+  creativeId?: string;
+  type?: string;
+  headline?: string;
+  body?: string;
+  callToAction?: string;
+  linkUrl?: string;
+  metadata: GraphCreative;
+}
+
+function mapCreative(creative?: GraphCreative): MappedCreative {
   if (!creative) {
-    return {};
+    return { metadata: {} };
   }
 
   return {
     creativeId: creative.id,
-    type: creative.asset_feed_spec?.attachment_style || creative.object_story_spec?.link_data?.link, // best effort
+    type: creative.asset_feed_spec?.attachment_style || creative.object_story_spec?.link_data?.link,
     headline: creative.title || creative.headline || creative.name,
     body: creative.body || creative.message,
-    callToAction:
-      (creative.object_story_spec?.link_data?.call_to_action?.type as string) || creative.call_to_action?.type,
+    callToAction: creative.object_story_spec?.link_data?.call_to_action?.type || creative.call_to_action?.type,
     linkUrl: creative.link_url || creative.object_story_spec?.link_data?.link,
     metadata: creative,
   };
@@ -279,15 +333,22 @@ export async function upsertAdFromGraph(payload: GraphAd, accountId: string, cam
   }).exec();
 }
 
-function mapIssues(effectiveStatus?: string, issuesInfo?: Array<any>) {
-  const issues: Array<any> = [];
+interface MappedAdIssue {
+  errorCode: string;
+  errorMessage: string;
+  errorSummary?: string;
+  level: 'ERROR' | 'WARNING';
+}
+
+function mapIssues(effectiveStatus?: string, issuesInfo?: GraphAdIssue[]): MappedAdIssue[] {
+  const issues: MappedAdIssue[] = [];
 
   if (issuesInfo && issuesInfo.length > 0) {
     issues.push(...issuesInfo.map(issue => ({
       errorCode: String(issue.error_code),
       errorMessage: issue.error_message,
       errorSummary: issue.error_summary,
-      level: issue.level === 'ERROR' ? 'ERROR' : 'WARNING',
+      level: (issue.level === 'ERROR' ? 'ERROR' : 'WARNING') as 'ERROR' | 'WARNING',
     })));
   }
 
@@ -708,7 +769,7 @@ export async function syncPerformanceDataForCampaign(
       'date_stop',
     ];
 
-    const insights = await fetchInsights<any>(
+    const insights = await fetchInsights<GraphInsights>(
       accessToken,
       campaignId,
       {
@@ -762,7 +823,7 @@ export async function syncPerformanceDataForAdSet(
       'date_stop',
     ];
 
-    const insights = await fetchInsights<any>(
+    const insights = await fetchInsights<GraphInsights>(
       accessToken,
       adSetId,
       {
@@ -815,7 +876,7 @@ export async function syncPerformanceDataForAd(
       'date_stop',
     ];
 
-    const insights = await fetchInsights<any>(
+    const insights = await fetchInsights<GraphInsights>(
       accessToken,
       adId,
       {

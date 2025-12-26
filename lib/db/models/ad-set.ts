@@ -16,7 +16,7 @@ export interface ITargeting {
   interests?: string[];
   customAudiences?: string[];
   lookalikes?: string[];
-  exclusions?: Record<string, any>;
+  exclusions?: string[] | Record<string, unknown>;
 }
 
 export interface IAdSet extends Document {
